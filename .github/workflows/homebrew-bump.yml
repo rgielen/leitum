@@ -1,0 +1,26 @@
+name: Homebrew Bump
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (e.g. v0.1.2) to bump the tap to
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bump leitum formula in rgielen/homebrew-taps
+        uses: dawidd6/action-homebrew-bump-formula@v6
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          tap: rgielen/homebrew-taps
+          formula: leitum
+          tag: ${{ github.event.release.tag_name || inputs.tag }}
+          force: false

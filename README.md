@@ -19,8 +19,8 @@ uvx leitum --version
 # via pip
 pip install leitum
 
-# via Homebrew (own tap)
-brew tap <owner>/leitum
+# via Homebrew
+brew tap rgielen/taps
 brew install leitum
 ```
 
