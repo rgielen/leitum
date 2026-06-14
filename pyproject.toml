@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "leitum"
+version = "0.1.0"
+description = "Launch Claude Code against alternative LLM routers"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+keywords = ["cli", "claude-code", "llm", "router"]
+dependencies = [
+    "typer>=0.12",
+    "questionary>=2.0",
+    "pydantic>=2.7",
+    "ruamel.yaml>=0.18",
+    "httpx>=0.27",
+    "rich>=13",
+]
+
+[project.scripts]
+leitum = "leitum.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.14",
+    "respx>=0.21",
+    "freezegun>=1.5",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-freezegun",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/leitum"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "PTH"]
+ignore = ["B008"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
