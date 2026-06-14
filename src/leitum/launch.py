@@ -121,15 +121,6 @@ def exec_claude(
     dry_run: bool = False,
     verbose: bool = False,
 ) -> None:
-    claude_path = shutil.which("claude")
-    if claude_path is None:
-        print(
-            "Error: 'claude' binary not found in PATH.\n"
-            "Install Claude Code: https://docs.claude.com/en/docs/claude-code/quickstart",
-            file=sys.stderr,
-        )
-        raise SystemExit(5)
-
     if verbose:
         print(f"Provider: {provider.name} ({provider.base_url})", file=sys.stderr)
         print("Environment changes:", file=sys.stderr)
@@ -158,6 +149,14 @@ def exec_claude(
                 print(f"  {k}={val}")
         print(f"\n# exec: {' '.join(argv)}")
         return
+
+    if shutil.which("claude") is None:
+        print(
+            "Error: 'claude' binary not found in PATH.\n"
+            "Install Claude Code: https://docs.claude.com/en/docs/claude-code/quickstart",
+            file=sys.stderr,
+        )
+        raise SystemExit(5)
 
     if verbose:
         print(f"Exec: {' '.join(argv)}", file=sys.stderr)

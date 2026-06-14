@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-14
+
+### Fixed
+- `leitum --dry-run claude` no longer requires the `claude` binary to be present
+  in `PATH`. The check now runs only when leitum is about to `exec` claude.
+
+### Changed
+- GitHub Release assets are restricted to wheel, sdist, and Sigstore
+  attestation files (no longer picks up `dist/.gitignore`).
+
 ## [0.1.0] - 2026-06-14
 
 ### Added
