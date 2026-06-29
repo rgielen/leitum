@@ -113,6 +113,10 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS_PASSED_THROUGH]
 - One logical change per commit. Squash trivia before opening a PR.
 - PR titles in the same Conventional-Commits style; PR bodies in English with a
   short summary and a test plan checklist.
+- **Never squash-merge automatically.** When merging a PR, preserve the
+  individual commits (merge commit or fast-forward) so every step stays
+  documented in `main`'s history. Only use a squash merge if the user explicitly
+  asks for one in that instance.
 
 ## When you make changes
 
