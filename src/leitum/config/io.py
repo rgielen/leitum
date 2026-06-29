@@ -76,7 +76,9 @@ def atomic_write_text(path: Path, content: str, mode: int = 0o600) -> None:
 
     On any failure the original file is left untouched and the temp file is
     removed. `mode` defaults to 0o600 because this helper is intended for
-    security-sensitive config files that may contain tokens.
+    security-sensitive config files that may contain tokens. The parent
+    directory is created if missing and clamped to 0o700, mirroring
+    `permissions.create_with_mode`, so the config directory stays private.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.parent.chmod(0o700)
