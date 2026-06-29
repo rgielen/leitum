@@ -2,9 +2,9 @@
 
 import pytest
 
-from leitum.config.models import ModelDefaults, Provider, ProviderAuth
+from leitum.config.models import ModelDefaults, Provider, ProviderAuth, ProvidersConfig
 from leitum.providers.discovery import ModelInfo
-from leitum.selection.resolver import resolve_models
+from leitum.selection.resolver import resolve_models, resolve_provider
 from leitum.state import State
 
 
@@ -45,6 +45,60 @@ def _resolve(
         model_infos=model_infos or _models("m1", "m2"),
         no_tty_ok=True,
     )
+
+
+def _providers_config(*names: str) -> ProvidersConfig:
+    return ProvidersConfig(
+        schema_version=1,
+        providers=[
+            Provider(
+                name=n,
+                base_url=f"https://{n}.example.com",
+                auth=ProviderAuth(token="tok"),
+            )
+            for n in names
+        ],
+    )
+
+
+class TestResolveProvider:
+    def test_use_last_provider_falls_back_to_project_config(self):
+        """Empty state + use_last + project_provider → project config honored."""
+        config = _providers_config("requesty", "openrouter")
+        result = resolve_provider(
+            flag=None,
+            use_last=True,
+            project_provider="requesty",
+            state=State(),
+            config=config,
+        )
+        assert result.name == "requesty"
+
+    def test_use_last_provider_state_wins_over_project_config(self):
+        """State present + use_last + project_provider → state wins."""
+        config = _providers_config("requesty", "openrouter")
+        state = State()
+        state.last_provider = "openrouter"
+        result = resolve_provider(
+            flag=None,
+            use_last=True,
+            project_provider="requesty",
+            state=state,
+            config=config,
+        )
+        assert result.name == "openrouter"
+
+    def test_use_last_provider_empty_and_no_project_falls_to_single(self):
+        """Empty state + use_last + single provider + no project_provider → auto-select."""
+        config = _providers_config("requesty")
+        result = resolve_provider(
+            flag=None,
+            use_last=True,
+            project_provider=None,
+            state=State(),
+            config=config,
+        )
+        assert result.name == "requesty"
 
 
 class TestResolutionOrder:
@@ -114,6 +168,39 @@ class TestResolutionOrder:
             model_infos=_models("m1", "m2"),
         )
         assert result.start == "cli-model"
+
+    def test_use_last_model_falls_back_to_project_config(self):
+        """Empty state + use_last + project_models → project value used."""
+        result = _resolve(
+            use_last={"start": False, "opus": False, "sonnet": True, "haiku": False},
+            project_models=ModelDefaults(sonnet="pinned-sonnet"),
+            state=State(),
+            model_infos=_models("m1", "m2"),
+        )
+        assert result.sonnet == "pinned-sonnet"
+
+    def test_use_last_model_state_wins_over_project_config(self):
+        """State present + use_last + project_models → state wins."""
+        state = State()
+        state.set_model("requesty", "sonnet", "state-sonnet")
+        result = _resolve(
+            use_last={"start": False, "opus": False, "sonnet": True, "haiku": False},
+            project_models=ModelDefaults(sonnet="pinned-sonnet"),
+            state=state,
+            model_infos=_models("m1", "m2"),
+        )
+        assert result.sonnet == "state-sonnet"
+
+    def test_use_last_model_empty_no_project_falls_to_roles(self):
+        """Empty state + use_last + no project + role-matching model → role match used."""
+        infos = _models(("sonnet-model", ["sonnet"]), ("other-model", []))
+        result = _resolve(
+            use_last={"start": False, "opus": False, "sonnet": True, "haiku": False},
+            project_models=None,
+            state=State(),
+            model_infos=infos,
+        )
+        assert result.sonnet == "sonnet-model"
 
 
 class TestRoleBasedPreselection:
