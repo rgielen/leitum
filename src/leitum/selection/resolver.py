@@ -46,17 +46,18 @@ def resolve_provider(
 
     if flag is not None:
         name = flag
-    elif use_last:
-        if state.last_provider:
-            name = state.last_provider
-        else:
-            print(
-                "Warning: --use-last-provider (-P) set but no last provider in state,"
-                " falling back to selection.",
-                file=sys.stderr,
-            )
+    elif use_last and state.last_provider:
+        name = state.last_provider
     elif project_provider is not None:
         name = project_provider
+
+    if use_last and flag is None and not state.last_provider and project_provider is None:
+        # No last provider and no project pin to fall back to — warn before auto/interactive.
+        print(
+            "Warning: --use-last-provider (-P) set but no last provider in state;"
+            " falling back to selection.",
+            file=sys.stderr,
+        )
 
     if name is not None:
         provider = config.get_provider(name)
@@ -122,7 +123,7 @@ def _get_preselected(
         val = state.get_model(provider.name, slot)
         if val is not None:
             return val, True
-        return None, False
+        # No last value for this slot — fall through to project_models / defaults / roles.
 
     if project_models is not None:
         val = project_models.get(slot)
