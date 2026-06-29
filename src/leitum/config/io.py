@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import tempfile
 from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -67,6 +69,36 @@ providers:
 EMPTY_STATE = """\
 schema_version: 1
 """
+
+
+def atomic_write_text(path: Path, content: str, mode: int = 0o600) -> None:
+    """Write `content` to `path` atomically via a temp file in the same directory.
+
+    On any failure the original file is left untouched and the temp file is
+    removed. `mode` defaults to 0o600 because this helper is intended for
+    security-sensitive config files that may contain tokens.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_str = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=path.suffix or ".yaml")
+    tmp = Path(tmp_str)
+    closed = False
+    try:
+        os.write(fd, content.encode("utf-8"))
+        os.close(fd)
+        closed = True
+        tmp.chmod(mode)
+        tmp.replace(path)
+    except Exception:
+        if not closed:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
 
 
 def write_example_providers_config(path: Path) -> None:

@@ -195,13 +195,17 @@ def _test_provider(base_url: str, token: str) -> None:
 
 
 def _append_provider(name: str, base_url: str, token: str, auth_env_var: str) -> None:
+    from io import StringIO
+
     from ruamel.yaml import YAML
     from ruamel.yaml.comments import CommentedMap
+
+    from leitum.config.io import atomic_write_text
 
     path = providers_config_path()
     y = YAML()
     y.preserve_quotes = True
-    with path.open("r") as f:
+    with path.open("r", encoding="utf-8") as f:
         doc = y.load(f)
 
     new_provider: CommentedMap = CommentedMap()
@@ -214,8 +218,9 @@ def _append_provider(name: str, base_url: str, token: str, auth_env_var: str) ->
     new_provider["auth"] = auth
 
     doc["providers"].append(new_provider)
-    with path.open("w") as f:
-        y.dump(doc, f)
+    buf = StringIO()
+    y.dump(doc, buf)
+    atomic_write_text(path, buf.getvalue(), mode=0o600)
 
 
 def run_provider_remove(name: str, yes: bool = False) -> None:
@@ -232,17 +237,22 @@ def run_provider_remove(name: str, yes: bool = False) -> None:
             print("Aborted.")
             raise SystemExit(0)
 
+    from io import StringIO
+
     from ruamel.yaml import YAML
+
+    from leitum.config.io import atomic_write_text
 
     path = providers_config_path()
     y = YAML()
     y.preserve_quotes = True
-    with path.open("r") as f:
+    with path.open("r", encoding="utf-8") as f:
         doc = y.load(f)
 
     doc["providers"] = [p for p in doc["providers"] if p["name"] != name]
-    with path.open("w") as f:
-        y.dump(doc, f)
+    buf = StringIO()
+    y.dump(doc, buf)
+    atomic_write_text(path, buf.getvalue(), mode=0o600)
 
     # Clear state if this was last_provider
     state = load_state()
