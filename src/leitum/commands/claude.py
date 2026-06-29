@@ -105,13 +105,15 @@ def run_claude(
                 file=sys.stderr,
             )
         else:
-            if verbose:
-                print(f"Refreshing model list for {provider.name}...", file=sys.stderr)
-            clear_cache(provider.name)
+            if not dry_run:
+                if verbose:
+                    print(f"Refreshing model list for {provider.name}...", file=sys.stderr)
+                clear_cache(provider.name)
 
     # Discover models
+    force = (refresh and not bool(provider.models)) and not dry_run
     try:
-        model_infos = discover_models(provider, force=refresh and not bool(provider.models))
+        model_infos = discover_models(provider, force=force)
     except RuntimeError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(4) from exc
@@ -150,19 +152,20 @@ def run_claude(
         verbose=verbose,
     )
 
-    # Persist state
-    state.last_provider = provider.name
-    from leitum.selection.resolver import _SLOTS
+    # Persist state — skipped in dry-run to remain side-effect-free
+    if not dry_run:
+        state.last_provider = provider.name
+        from leitum.selection.resolver import _SLOTS
 
-    for slot in _SLOTS:
-        val = resolved.get(slot)
-        if val:
-            state.set_model(provider.name, slot, val)
-    state.touch_provider(provider.name)
-    try:
-        save_state(state)
-    except Exception as exc:
-        print(f"Warning: could not save state: {exc}", file=sys.stderr)
+        for slot in _SLOTS:
+            val = resolved.get(slot)
+            if val:
+                state.set_model(provider.name, slot, val)
+        state.touch_provider(provider.name)
+        try:
+            save_state(state)
+        except Exception as exc:
+            print(f"Warning: could not save state: {exc}", file=sys.stderr)
 
     project_extra = project_cfg.extra_env if project_cfg else {}
 
