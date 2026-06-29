@@ -1,7 +1,10 @@
 """Unit tests for state.py."""
 
+import os
 import stat
 from pathlib import Path
+
+import pytest
 
 from leitum.state import State, load_state, save_state
 
@@ -58,3 +61,58 @@ class TestStateRoundtrip:
 
         loaded = load_state(p)
         assert loaded.get_model("requesty", "opus") is None
+
+
+def _make_state() -> State:
+    s = State()
+    s.last_provider = "requesty"
+    s.set_model("requesty", "start", "anthropic/claude-sonnet-4-5")
+    return s
+
+
+class TestSaveStateErrorHandling:
+    def test_save_state_surfaces_replace_error(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        p = tmp_path / "state.yaml"
+        monkeypatch.setattr(
+            Path, "replace", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("disk full"))
+        )
+        with pytest.raises(OSError, match="disk full"):
+            save_state(_make_state(), path=p)
+
+    def test_save_state_cleans_temp_on_replace_failure(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        p = tmp_path / "state.yaml"
+        monkeypatch.setattr(
+            Path, "replace", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("disk full"))
+        )
+        with pytest.raises(OSError):
+            save_state(_make_state(), path=p)
+        leftover = list(tmp_path.glob(".state-*.yaml"))
+        assert leftover == [], f"temp files left behind: {leftover}"
+
+    def test_save_state_surfaces_chmod_error(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        p = tmp_path / "state.yaml"
+        monkeypatch.setattr(
+            Path, "chmod", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("perm"))
+        )
+        with pytest.raises(OSError, match="perm"):
+            save_state(_make_state(), path=p)
+        leftover = list(tmp_path.glob(".state-*.yaml"))
+        assert leftover == [], f"temp files left behind: {leftover}"
+
+    def test_save_state_write_error_still_cleans_up(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        p = tmp_path / "state.yaml"
+        monkeypatch.setattr(
+            os, "write", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("io"))
+        )
+        with pytest.raises(OSError, match="io"):
+            save_state(_make_state(), path=p)
+        leftover = list(tmp_path.glob(".state-*.yaml"))
+        assert leftover == [], f"temp files left behind: {leftover}"

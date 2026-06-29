@@ -82,12 +82,18 @@ def save_state(state: State, path: Path | None = None) -> None:
     content = buf.getvalue()
 
     fd, tmp = tempfile.mkstemp(dir=p.parent, prefix=".state-", suffix=".yaml")
+    closed = False
     try:
         os.write(fd, content.encode("utf-8"))
         os.close(fd)
+        closed = True
         Path(tmp).chmod(0o600)
         Path(tmp).replace(p)
     except Exception:
-        os.close(fd)
+        if not closed:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
         Path(tmp).unlink(missing_ok=True)
         raise
