@@ -1,5 +1,6 @@
 ---
 name: process-issues
+argument-hint: "[key=value ...]  e.g.  max_parallel=8 worker_model=opus label=ready"
 description: Process open GitHub issues assigned to the current user into review-ready Pull Requests. Selects eligible issues, orders them by dependency (text refs like "Depends on #N" plus GitHub-native relations) and otherwise first-come-first-serve, then dispatches up to four parallel worker subagents — each in its own git worktree with a clean context — that implement the issue per its spec and open a draft PR. Use when the user wants to auto-work the issue backlog, batch-implement assigned issues, or invoke /process-issues. Never merges; every issue results in a PR for human review.
 ---
 
@@ -44,6 +45,22 @@ If a label is missing: `gh label create in-progress` / `gh label create needs-sp
 - `CLAIM_LABEL`: `in-progress`
 - `BLOCK_LABEL`: `needs-spec`
 - `BASE_BRANCH`: `main`
+
+### Overrides at invocation
+
+The invocation arguments are: `$ARGUMENTS`
+
+Parse them as space-separated `key=value` pairs and override the defaults above;
+keys are case-insensitive and match the parameter names (`max_parallel`,
+`worker_model`, `assignee`, `claim_label`, `block_label`, `base_branch`, plus
+`label=<name>` to additionally restrict the scope to issues carrying that
+label). Any parameter not given keeps its default. If `$ARGUMENTS` is empty, use
+all defaults. Reject unknown keys with a one-line note instead of guessing.
+
+Examples:
+- `/process-issues` — all defaults (4 workers, Sonnet, assigned to me)
+- `/process-issues max_parallel=8`
+- `/process-issues max_parallel=2 worker_model=opus label=ready`
 
 ## Procedure
 
