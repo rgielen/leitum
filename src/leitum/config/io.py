@@ -79,11 +79,19 @@ def atomic_write_text(path: Path, content: str, mode: int = 0o600) -> None:
     security-sensitive config files that may contain tokens.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.chmod(0o700)
     fd, tmp_str = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=path.suffix or ".yaml")
     tmp = Path(tmp_str)
     closed = False
     try:
-        os.write(fd, content.encode("utf-8"))
+        data = content.encode("utf-8")
+        view = memoryview(data)
+        offset = 0
+        while offset < len(view):
+            written = os.write(fd, view[offset:])
+            if written == 0:
+                raise OSError("short write")
+            offset += written
         os.close(fd)
         closed = True
         tmp.chmod(mode)
