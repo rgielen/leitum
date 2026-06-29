@@ -117,6 +117,21 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS_PASSED_THROUGH]
   individual commits (merge commit or fast-forward) so every step stays
   documented in `main`'s history. Only use a squash merge if the user explicitly
   asks for one in that instance.
+- **Always delete the PR branch after merge.** The repository has
+  `delete_branch_on_merge` enabled, so the **remote** head branch is removed
+  automatically on merge. The matching **local** cleanup is manual and must
+  always be done. Run it from the **primary checkout**, never from inside the
+  branch's own worktree (`gh pr merge --delete-branch` fails when invoked from
+  within the worktree it is trying to remove):
+
+  ```bash
+  git worktree remove <path>     # only if the branch had a worktree
+  git branch -d <branch>         # -D only when intentionally discarding work
+  git fetch origin --prune       # drop stale remote-tracking refs
+  ```
+
+  After a merge, no branch other than `main` should remain locally or on the
+  remote unless it has unmerged work.
 
 ## When you make changes
 

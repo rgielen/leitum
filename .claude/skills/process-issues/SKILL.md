@@ -168,3 +168,9 @@ Return: the PR URL, or a clear reason if you stopped without a PR.
   each worktree. Those files are gitignored, so a worker cannot commit them.
 - **Idempotency.** Re-running the orchestrator is safe: claimed (`in-progress`)
   and parked (`needs-spec`) issues, and issues with an open PR, are skipped.
+- **Post-merge cleanup.** Each worker leaves a `feat/issue-<N>` branch plus an
+  agent worktree under `.claude/worktrees/`. The orchestrator never merges, so
+  these persist until a human merges the PR. The remote branch is auto-deleted
+  on merge (`delete_branch_on_merge`); the local worktree and branch must be
+  removed afterwards from the primary checkout — see CLAUDE.md "Git workflow"
+  for the exact procedure. Do not run the merge/cleanup from inside the worktree.
