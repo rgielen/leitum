@@ -1,7 +1,7 @@
 ---
 name: process-issues
 argument-hint: "[key=value ...]  e.g.  max_parallel=8 worker_model=opus label=ready"
-description: Process open GitHub issues assigned to the current user into review-ready Pull Requests. Selects eligible issues, orders them by dependency (text refs like "Depends on #N" plus GitHub-native relations) and otherwise first-come-first-serve, then dispatches up to four parallel worker subagents — each in its own git worktree with a clean context — that implement the issue per its spec and open a draft PR. Use when the user wants to auto-work the issue backlog, batch-implement assigned issues, or invoke /process-issues. Never merges; every issue results in a PR for human review.
+description: Process open GitHub issues assigned to the current user into review-ready Pull Requests. Selects eligible issues, orders them by dependency (text refs like "Depends on #N" plus GitHub-native relations) and otherwise first-come-first-serve, then dispatches up to four parallel worker subagents — each in its own git worktree with a clean context — that implement the issue per its spec and open a PR marked ready for review. Use when the user wants to auto-work the issue backlog, batch-implement assigned issues, or invoke /process-issues. Never merges; every issue results in a PR for human review.
 ---
 
 # Process assigned issues into review-ready PRs
@@ -151,7 +151,10 @@ Rules:
    If you cannot make them pass, STOP and report — do not open a broken PR.
 5. ALWAYS open a Pull Request for human review. Never merge and never push to
    main. Conventional-Commits title, English body with a short summary and a
-   test-plan checklist, and "Closes #<N>". Open it as a draft.
+   test-plan checklist, and "Closes #<N>". The quality gates (rule 4) have
+   already passed by the time you open the PR, so it must end **ready for
+   review, not a draft**. If your tooling opens it as a draft, flip it with
+   `gh pr ready <PR#>` before returning.
 6. Do not touch other issues, branches, or unrelated files.
 
 Return: the PR URL, or a clear reason if you stopped without a PR.
