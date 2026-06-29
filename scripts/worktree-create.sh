@@ -16,6 +16,8 @@
 # best-effort and must never fail creation.
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || { echo "[worktree-create] jq is required to parse hook JSON" >&2; exit 1; }
+
 INPUT="$(cat)"
 
 REPO_PATH="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
