@@ -5,6 +5,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-07-03
+
+### Added
+- Auto-load a project-local `.leitumenv` file from the current directory before
+  launch. It is sourced via bash, so `${VAR}` references and `$(...)` command
+  substitution resolve for tokens used in `api-providers.yaml` / `leitum.yaml`.
+  The shell environment takes precedence; use `--no-dotenv` to skip loading.
+- Brand logo (SVG lockup/mark/wordmark plus favicon) and an animated demo video
+  (Remotion) embedded at the top of the README.
+- `remotion-best-practices` project skill.
+
+## [0.1.3] - 2026-07-03
+
+### Added
+- Provider preset registry and local providers in `leitum provider add`
+  (Ollama, LM Studio, llama.cpp, vLLM, and a generic Anthropic-compatible entry).
+- `leitum provider detect` — auto-detect local Anthropic-compatible servers on
+  their default ports.
+- Type-to-filter search in the provider and model selection dialogs.
+- `--save-local` / `-l` — persist the resolved provider and models to
+  `leitum.yaml` instead of the global state (comments and `extra_env` preserved).
+
 ## [0.1.2] - 2026-07-03
 
 ### Added
