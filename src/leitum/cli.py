@@ -255,3 +255,15 @@ def provider_remove(
     from leitum.commands.provider import run_provider_remove
 
     run_provider_remove(name, yes=yes)
+
+
+@provider_app.command("detect")
+def provider_detect(
+    json_output: bool = typer.Option(
+        False, "--json", help="Output detection result in JSON format without writing."
+    ),
+) -> None:
+    """Auto-detect running local Anthropic-compatible servers."""
+    from leitum.commands.provider import run_provider_detect
+
+    run_provider_detect(json_output=json_output)

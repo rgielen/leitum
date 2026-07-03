@@ -168,7 +168,7 @@ def run_provider_add(
         raise SystemExit(130)
 
     if provider_type == "detect":
-        print("Please run 'leitum provider detect' to find local providers.", file=sys.stderr)
+        run_provider_detect(json_output=False, config=config)
         raise SystemExit(0)
 
     if provider_type == "custom":
@@ -292,11 +292,12 @@ def _append_provider(
     token: str,
     auth_env_var: str,
     extra_env: dict[str, str] | None = None,
+    models: list[dict[str, str | list[str]]] | None = None,
 ) -> None:
     from io import StringIO
 
     from ruamel.yaml import YAML
-    from ruamel.yaml.comments import CommentedMap
+    from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
     from leitum.config.io import atomic_write_text
 
@@ -320,6 +321,21 @@ def _append_provider(
         for k, v in extra_env.items():
             c_env[k] = v
         new_provider["extra_env"] = c_env
+
+    if models is not None:
+        c_models = CommentedSeq()
+        for m in models:
+            m_map = CommentedMap()
+            m_map["id"] = m["id"]
+            if m.get("display"):
+                m_map["display"] = m["display"]
+            if m.get("roles"):
+                m_roles = CommentedSeq()
+                for r in m["roles"]:
+                    m_roles.append(r)
+                m_map["roles"] = m_roles
+            c_models.append(m_map)
+        new_provider["models"] = c_models
 
     doc["providers"].append(new_provider)
     buf = StringIO()
@@ -368,3 +384,152 @@ def run_provider_remove(name: str, yes: bool = False) -> None:
 
     clear_cache(name)
     print(f"Provider '{name}' removed.")
+
+
+def run_provider_detect(json_output: bool = False, config: ProvidersConfig | None = None) -> None:
+    import json
+
+    import httpx
+    import questionary
+
+    from leitum.providers.presets import PRESETS
+
+    if config is None:
+        try:
+            config = _load_config()
+        except SystemExit:
+            # Let's support running even without config if json_output is requested
+            if not json_output:
+                raise
+            # If json_output is requested, we can just detect without config
+            pass
+
+    detected = []
+
+    # 1. Probe each preset with detect_ports
+    for p_preset in PRESETS:
+        if not p_preset.detect_ports:
+            continue
+
+        for _port in p_preset.detect_ports:
+            # Base URL is from default preset's base_url
+            base_url = p_preset.base_url
+            url = base_url.rstrip("/") + "/v1/models"
+            try:
+                # Use a short timeout of ~1.5s as per spec
+                with httpx.Client(timeout=1.5) as client:
+                    resp = client.get(url, headers={"Authorization": f"Bearer {p_preset.token}"})
+
+                # Tolerate both authenticated (200) and open responses (200 without auth)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    models_list = data.get("data", [])
+                    model_count = len(models_list)
+                    detected.append(
+                        {
+                            "preset": p_preset,
+                            "base_url": base_url,
+                            "model_count": model_count,
+                            "models": models_list,
+                        }
+                    )
+            except Exception:
+                # Silently ignore connection errors / timeouts
+                continue
+
+    # 5. leitum provider detect --json prints detection results machine-readably without writing
+    if json_output:
+        json_data = []
+        for det in detected:
+            p_preset = det["preset"]
+            json_data.append(
+                {
+                    "key": p_preset.key,
+                    "display": p_preset.display,
+                    "base_url": det["base_url"],
+                    "model_count": det["model_count"],
+                }
+            )
+        print(json.dumps(json_data, indent=2))
+        return
+
+    # 3. Output
+    if not detected:
+        print("No local server is running on the known ports.")
+        print("Point at 'leitum provider add' to configure one manually.")
+        return
+
+    # One or more reachable -> interactive multi-select of which to add
+    choices = []
+    for det in detected:
+        p_preset = det["preset"]
+        label = f"{p_preset.display} ({det['base_url']}) — {det['model_count']} models found"
+        choices.append(questionary.Choice(label, value=det))
+
+    selected = questionary.checkbox(
+        "Select local servers to add as providers:",
+        choices=choices,
+    ).ask()
+
+    if selected is None:
+        raise SystemExit(130)
+
+    if not selected:
+        print("No servers selected. Aborting.")
+        return
+
+    # 4. For each selected server
+    for det in selected:
+        p_preset = det["preset"]
+        base_name = p_preset.default_name
+
+        # Name collision handling
+        final_name = base_name
+        suffix = 2
+        while config is not None and config.get_provider(final_name) is not None:
+            cand = f"{base_name}-{suffix}"
+            choice = questionary.select(
+                f"Provider '{final_name}' already exists. What would you like to do?",
+                choices=[
+                    questionary.Choice(f"Use name '{cand}' instead", value="rename"),
+                    questionary.Choice("Skip this provider", value="skip"),
+                ],
+            ).ask()
+            if choice is None:
+                raise SystemExit(130)
+            if choice == "skip":
+                final_name = None
+                break
+            else:
+                final_name = cand
+                suffix += 1
+
+        if final_name is None:
+            print(f"Skipped adding {p_preset.display}.")
+            continue
+
+        # Optionally pin discovered models
+        pin_models = questionary.confirm(
+            f"Pin {det['model_count']} discovered models to the config for '{final_name}'?",
+            default=True,
+        ).ask()
+        if pin_models is None:
+            raise SystemExit(130)
+
+        models_to_write = None
+        if pin_models:
+            models_to_write = []
+            for m in det["models"]:
+                m_id = m.get("id") or m.get("name", "")
+                if m_id:
+                    models_to_write.append({"id": m_id})
+
+        _append_provider(
+            name=final_name,
+            base_url=det["base_url"],
+            token=p_preset.token,
+            auth_env_var=p_preset.auth_env_var,
+            extra_env=p_preset.extra_env,
+            models=models_to_write,
+        )
+        print(f"Provider '{final_name}' added to {providers_config_path()}.")
