@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
+import httpx
 import respx
 from httpx import Response
 from ruamel.yaml import YAML
@@ -17,21 +17,25 @@ from leitum.commands.provider import run_provider_detect
 def test_provider_detect_none_found(tmp_config_dir: Path) -> None:
     # Use respx to mock requests failing/timing out
     with respx.mock:
-        # All requests to localhost ports should fail
-        respx.get(url__regex=r"http://localhost:.*").mock(side_effect=Exception("Connection refused"))
+        # All requests to localhost ports should fail with a ConnectError
+        respx.get(url__regex=r"http://localhost:.*").mock(
+            side_effect=httpx.ConnectError("Connection refused")
+        )
 
         with patch("sys.stdout") as mock_stdout:
-            # We don't have configuration here, but detect should still handle it or we can pass a mocked config
-            from leitum.config.models import ProvidersConfig
+            # We don't have configuration here, but detect should still handle it
+            # or we can pass a mocked config
+            from leitum.config.models import Provider, ProvidersConfig
+
             config = ProvidersConfig(
                 schema_version=1,
                 providers=[
-                    {
-                        "name": "existing",
-                        "base_url": "https://existing.example",
-                        "auth": {"token": "dummy"},
-                    }
-                ]
+                    Provider(
+                        name="existing",
+                        base_url="https://existing.example",
+                        auth={"token": "dummy"},
+                    )
+                ],
             )
             run_provider_detect(json_output=False, config=config)
 
@@ -56,7 +60,9 @@ def test_provider_detect_json(tmp_config_dir: Path) -> None:
             )
         )
         # All other ports fail
-        respx.get(url__regex=r"http://localhost:(?!11434).*").mock(side_effect=Exception("Refused"))
+        respx.get(url__regex=r"http://localhost:(?!11434).*").mock(
+            side_effect=httpx.ConnectError("Refused")
+        )
 
         with patch("sys.stdout") as mock_stdout:
             run_provider_detect(json_output=True)
@@ -98,7 +104,9 @@ def test_provider_detect_add_flow(tmp_config_dir: Path) -> None:
                 },
             )
         )
-        respx.get(url__regex=r"http://localhost:(?!11434).*").mock(side_effect=Exception("Refused"))
+        respx.get(url__regex=r"http://localhost:(?!11434).*").mock(
+            side_effect=httpx.ConnectError("Refused")
+        )
 
         # We mock questionary checkboxes/confirms:
         # 1. checkbox selection: we select the first (and only) detected server

@@ -388,21 +388,15 @@ def run_provider_remove(name: str, yes: bool = False) -> None:
 
 def run_provider_detect(json_output: bool = False, config: ProvidersConfig | None = None) -> None:
     import json
+    from urllib.parse import urlparse
 
     import httpx
     import questionary
 
     from leitum.providers.presets import PRESETS
 
-    if config is None:
-        try:
-            config = _load_config()
-        except SystemExit:
-            # Let's support running even without config if json_output is requested
-            if not json_output:
-                raise
-            # If json_output is requested, we can just detect without config
-            pass
+    if config is None and not json_output:
+        config = _load_config()
 
     detected = []
 
@@ -412,9 +406,11 @@ def run_provider_detect(json_output: bool = False, config: ProvidersConfig | Non
             continue
 
         for _port in p_preset.detect_ports:
-            # Base URL is from default preset's base_url
-            base_url = p_preset.base_url
-            url = base_url.rstrip("/") + "/v1/models"
+            # Reconstruct local base_url using the specific port
+            parsed = urlparse(p_preset.base_url)
+            # Use 'localhost' as host but substitute the specific port from detect_ports
+            base_url = f"{parsed.scheme}://localhost:{_port}"
+            url = f"{base_url}/v1/models"
             try:
                 # Use a short timeout of ~1.5s as per spec
                 with httpx.Client(timeout=1.5) as client:
@@ -433,8 +429,8 @@ def run_provider_detect(json_output: bool = False, config: ProvidersConfig | Non
                             "models": models_list,
                         }
                     )
-            except Exception:
-                # Silently ignore connection errors / timeouts
+            except (httpx.RequestError, json.JSONDecodeError):
+                # Silently ignore connection errors, timeouts, or JSON parsing errors
                 continue
 
     # 5. leitum provider detect --json prints detection results machine-readably without writing
@@ -456,7 +452,7 @@ def run_provider_detect(json_output: bool = False, config: ProvidersConfig | Non
     # 3. Output
     if not detected:
         print("No local server is running on the known ports.")
-        print("Point at 'leitum provider add' to configure one manually.")
+        print("Run 'leitum provider add' to configure one manually.")
         return
 
     # One or more reachable -> interactive multi-select of which to add
@@ -482,6 +478,10 @@ def run_provider_detect(json_output: bool = False, config: ProvidersConfig | Non
     for det in selected:
         p_preset = det["preset"]
         base_name = p_preset.default_name
+
+        # Reload configuration so we pick up recently added names on sequential appends
+        if config is not None:
+            config = _load_config()
 
         # Name collision handling
         final_name = base_name
@@ -516,7 +516,7 @@ def run_provider_detect(json_output: bool = False, config: ProvidersConfig | Non
         if pin_models is None:
             raise SystemExit(130)
 
-        models_to_write = None
+        models_to_write: list[dict[str, str | list[str]]] | None = None
         if pin_models:
             models_to_write = []
             for m in det["models"]:
