@@ -63,9 +63,13 @@ def run_claude(
     # Load .leitumenv from CWD before any config, so ${VAR} interpolation can use it
     if not no_dotenv:
         dotenv_vars = load_dotenv_file(Path(".leitumenv"), verbose=verbose)
+        set_keys: list[str] = []
         for key, value in dotenv_vars.items():
             if key not in os.environ:
                 os.environ[key] = value
+                set_keys.append(key)
+        if verbose and set_keys:
+            print(f"  Set from .leitumenv: {', '.join(sorted(set_keys))}", file=sys.stderr)
 
     # Load global config
     cfg_path = providers_config_path()

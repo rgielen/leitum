@@ -119,6 +119,30 @@ class TestDotenvInRunClaude:
 
         assert captured_env.get("MY_VAR") == "from_shell"
 
+    def test_verbose_logs_set_keys(
+        self,
+        tmp_path: Path,
+        minimal_providers_yaml: Path,
+        tmp_state_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        """Verbose mode logs which keys were actually set, not just found in file."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / ".leitumenv").write_text(
+            "NEW_VAR=injected\nEXISTING_VAR=from_dotenv\n", encoding="utf-8"
+        )
+        monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
+        monkeypatch.delenv("NEW_VAR", raising=False)
+        monkeypatch.setenv("EXISTING_VAR", "from_shell")
+
+        with patch("leitum.commands.claude.exec_claude"):
+            run_claude(**_make_run_claude_kwargs(verbose=True))
+
+        captured = capsys.readouterr()
+        assert "NEW_VAR" in captured.err
+        assert "EXISTING_VAR" not in captured.err  # was already in env, not set
+
     def test_missing_dotenv_causes_no_error(
         self,
         tmp_path: Path,
