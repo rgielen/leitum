@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
-from leitum.config.io import load_project_config, load_providers_config, save_project_config
+from leitum.config.io import (
+    load_dotenv_file,
+    load_project_config,
+    load_providers_config,
+    save_project_config,
+)
 from leitum.config.models import ModelSlot
 from leitum.config.paths import providers_config_path
 from leitum.launch import exec_claude
@@ -34,6 +40,7 @@ def run_claude(
     save_local: bool,
     dry_run: bool,
     verbose: bool,
+    no_dotenv: bool = False,
 ) -> None:
     # Conflict checks
     _check_conflict("--model/-m", "--use-last-model/-M", model_flag, use_last_model)
@@ -52,6 +59,13 @@ def run_claude(
             file=sys.stderr,
         )
         raise SystemExit(2)
+
+    # Load .leitumenv from CWD before any config, so ${VAR} interpolation can use it
+    if not no_dotenv:
+        dotenv_vars = load_dotenv_file(Path(".leitumenv"), verbose=verbose)
+        for key, value in dotenv_vars.items():
+            if key not in os.environ:
+                os.environ[key] = value
 
     # Load global config
     cfg_path = providers_config_path()

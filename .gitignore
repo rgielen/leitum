@@ -11,6 +11,7 @@ dist/
 # Secrets — never commit. Copied into worktrees by the WorktreeCreate hook.
 .env
 .env.local
+.leitumenv
 
 # Isolated worktrees created for parallel issue workers
 .claude/worktrees/
