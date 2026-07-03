@@ -4,17 +4,14 @@ This document outlines the planned and completed features for `leitum`.
 
 ## Shipped Features (v1)
 
-### Local Providers Manual Integration
-- **Manual Configuration Guidance**: Step-by-step setup guides for popular local, Anthropic-compatible servers: Ollama, LM Studio, llama.cpp, and vLLM. See [Ollama](providers/ollama.md), [LM Studio](providers/lm-studio.md), and [Local Providers](providers/local.md) documentation.
-- **Context handling**: Recommended context lengths are documented for local providers.
+### Local Providers & Presets
+- **Interactive presets** for popular local, Anthropic-compatible servers: Ollama, LM Studio, llama.cpp, and vLLM. See [Ollama](providers/ollama.md), [LM Studio](providers/lm-studio.md), and [Local Providers](providers/local.md) documentation.
+- **Automatic detection** (`leitum provider detect`): Scan local ports to discover running instances of Ollama, LM Studio, llama.cpp, and vLLM, and easily configure them with one click.
+- **Context handling**: Recommended context lengths are documented and automatically suggested for local providers.
 
 ---
 
 ## Planned Features (v1 & beyond)
-
-### Local Provider Automation (In Progress)
-- **Interactive presets** for local servers: Ollama, LM Studio, llama.cpp, and vLLM to easily configure them without prompts.
-- **Automatic detection** (`leitum provider detect`): Scan local ports to discover running instances of local servers and configure them with one click.
 
 ### Extra Providers & Presets
 - Preset wizards for more remote API routing/proxy options (OpenRouter, LiteLLM, etc.).

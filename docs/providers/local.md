@@ -6,6 +6,20 @@ You can run Claude Code against other local inference engines such as **llama.cp
 
 The standard `llama-server` provides an Anthropic-compatible Messages API format out of the box.
 
+### Setup via Preset
+
+```bash
+leitum provider add --preset llama-cpp
+```
+
+### Setup via Auto-Detection
+
+If `llama-server` is running on its default port `8080`, you can detect it automatically:
+
+```bash
+leitum provider detect
+```
+
 ### Manual Setup
 
 Add the following block to your `~/.config/leitum/api-providers.yaml` file:
@@ -26,6 +40,20 @@ Ensure your `llama-server` is started with a sufficiently large context limit (e
 
 `vLLM` is a high-throughput and memory-efficient LLM serving engine. It provides an Anthropic-compatible Messages API.
 
+### Setup via Preset
+
+```bash
+leitum provider add --preset vllm
+```
+
+### Setup via Auto-Detection
+
+If `vLLM` is running on its default port `8000`, you can detect it automatically:
+
+```bash
+leitum provider detect
+```
+
 ### Manual Setup
 
 Add the following block to your `~/.config/leitum/api-providers.yaml` file:
@@ -44,6 +72,12 @@ Add the following block to your `~/.config/leitum/api-providers.yaml` file:
 
 For any other local, Anthropic-compatible server running on a custom port or another framework, you can use the generic template.
 
+### Setup via Preset
+
+```bash
+leitum provider add --preset local-generic
+```
+
 ### Manual Configuration Example
 
 ```yaml
@@ -53,8 +87,6 @@ For any other local, Anthropic-compatible server running on a custom port or ano
     token: local                       # Placeholder token, not a secret
     env_var: ANTHROPIC_AUTH_TOKEN
 ```
-
-*Note: Automated detection (`leitum provider detect`) and preset commands (`leitum provider add --preset ...`) are upcoming features and will be available in a future release.*
 
 ---
 

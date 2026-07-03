@@ -97,7 +97,7 @@ If Claude Code starts up successfully but fails when trying to read/write files 
 Local servers often default to small context limits (like 2K or 8K), which is insufficient for Claude Code's extensive prompts.
 - **Symptom**: Claude Code cuts off mid-conversation, complains about reaching limits, or loses its memory of files it just read.
 - **Fix**: Set a context limit of at least 32K (32768 tokens) - 64K (65536 tokens) is highly recommended.
-  - For Ollama, you can configure `extra_env` with `OLLAMA_CONTEXT_LENGTH: "32768"` in your `api-providers.yaml` to raise the context limit.
+  - For Ollama, the preset automatically configures `OLLAMA_CONTEXT_LENGTH: "32768"` via `extra_env`.
   - For LM Studio, adjust the context limit setting in the UI when loading the model.
   - For llama.cpp (`llama-server`), start with `-c 32768`.
 
