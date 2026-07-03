@@ -35,6 +35,7 @@ class _Opts:
     save_local: bool = False
     dry_run: bool = False
     verbose: bool = False
+    no_dotenv: bool = False
 
 
 @app.callback(invoke_without_command=True)
@@ -79,6 +80,7 @@ def root(
         False, "--dry-run", help="Print resolved env and exec line, do not launch."
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging on stderr."),
+    no_dotenv: bool = typer.Option(False, "--no-dotenv", help="Skip loading .leitumenv file."),
     version: bool = typer.Option(False, "--version", help="Show version and exit.", is_eager=True),
 ) -> None:
     if version:
@@ -106,6 +108,7 @@ def root(
     obj.save_local = save_local
     obj.dry_run = dry_run
     obj.verbose = verbose
+    obj.no_dotenv = no_dotenv
 
     if ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
@@ -148,6 +151,7 @@ def claude(
         save_local=opts.save_local,
         dry_run=opts.dry_run,
         verbose=opts.verbose,
+        no_dotenv=opts.no_dotenv,
     )
 
 

@@ -78,6 +78,34 @@ the resolved provider and models are saved to `leitum.yaml` (comments and
 `extra_env` in an existing file are preserved, and the global state is left
 untouched).
 
+### Project-local secrets with `.leitumenv`
+
+Store sensitive API tokens in a `.leitumenv` file in your project root. leitum
+loads this file automatically on every `leitum claude` invocation, injecting
+the key/value pairs into the environment before launching — without requiring
+direnv or manual shell exports.
+
+```
+# .leitumenv — never commit this file
+export REQUESTY_API_KEY=rq-...
+MY_CUSTOM_VAR=some_value
+```
+
+The file is parsed before any config loading, so `${VAR}` references in
+`api-providers.yaml` and `leitum.yaml` can use values from it.
+
+Rules:
+- Shell environment takes precedence: a var already exported in your shell is
+  never overwritten by `.leitumenv`.
+- Lines starting with `#` and blank lines are ignored.
+- A leading `export ` prefix is accepted and stripped.
+- Values may be surrounded by single or double quotes (stripped on load).
+- No `${VAR}` expansion is performed inside `.leitumenv` itself.
+- Use `--no-dotenv` to skip loading the file entirely for a single invocation.
+
+**Add `.leitumenv` to your project's `.gitignore`** to prevent accidental
+commits of tokens. leitum's own `.gitignore` already includes it.
+
 ## CLI Reference
 
 ```
@@ -97,6 +125,7 @@ Global options (before the subcommand):
 | `--haiku <id>` | `-k` | Set HAIKU model |
 | `--refresh` | `-r` | Refresh model cache |
 | `--no-project-config` | | Ignore leitum.yaml |
+| `--no-dotenv` | | Skip loading .leitumenv from CWD |
 | `--save-local` | `-l` | Save the resolved selection to leitum.yaml instead of global state |
 | `--dry-run` | | Print env + exec line, do not launch |
 | `--verbose` | `-v` | Verbose logging on stderr |

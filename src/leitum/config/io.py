@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 from io import StringIO
 from pathlib import Path
@@ -10,6 +11,26 @@ from ruamel.yaml import YAML
 
 if TYPE_CHECKING:
     from leitum.config.models import ProjectConfig, ProvidersConfig
+
+
+def load_dotenv_file(path: Path, *, verbose: bool = False) -> dict[str, str]:
+    """Parse a .leitumenv file and return its key/value pairs.
+
+    Returns an empty dict if the file does not exist. In verbose mode, logs
+    which file was loaded and which keys were set (values are never logged).
+    """
+    from leitum.config.env import parse_dotenv
+
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    result = parse_dotenv(text)
+    if verbose:
+        print(f"Loaded dotenv file: {path}", file=sys.stderr)
+        if result:
+            keys = ", ".join(sorted(result))
+            print(f"  Keys found: {keys}", file=sys.stderr)
+    return result
 
 
 def _yaml() -> YAML:
