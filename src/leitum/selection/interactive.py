@@ -36,6 +36,8 @@ def select_provider(providers: list[Provider], last_provider: str | None) -> Pro
         "Select API provider",
         choices=choices,
         default=default,  # type: ignore[arg-type]
+        use_search_filter=True,
+        show_selected=True,
     ).ask()
     return result  # type: ignore[no-any-return]
 
@@ -88,6 +90,8 @@ def select_models(
             f"Select models for {provider_name} — {_SLOT_LABELS[slot]}",
             choices=choices,
             default=default,  # type: ignore[arg-type]
+            use_search_filter=True,
+            show_selected=True,
         ).ask()
 
         if answer is None:
