@@ -30,7 +30,7 @@ jobs:
       # deprecated and slated for removal, so we trust explicitly instead.
       - name: Trust the leitum tap
         run: |
-          brew tap rgielen/homebrew-taps
+          brew tap rgielen/taps
           brew trust rgielen/taps
       - name: Bump leitum formula in rgielen/homebrew-taps
         uses: dawidd6/action-homebrew-bump-formula@v6
