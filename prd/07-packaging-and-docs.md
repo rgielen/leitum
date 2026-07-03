@@ -29,7 +29,10 @@ leitum/
 │   ├── getting-started.md
 │   ├── configuration.md
 │   ├── providers/
-│   │   └── requesty.md
+│   │   ├── requesty.md
+│   │   ├── ollama.md
+│   │   ├── lm-studio.md
+│   │   └── local.md
 │   ├── commands.md
 │   └── troubleshooting.md
 └── prd/
@@ -146,6 +149,9 @@ Landing-Page.
 - `commands.md`: pro Subcommand ein Abschnitt mit Optionen und Beispielen.
 - `providers/requesty.md`: provider-spezifische Hinweise (Auth-ENV-Var,
   Modell-Naming, Link auf Requesty-Doku).
+- `providers/ollama.md`, `providers/lm-studio.md`, `providers/local.md`:
+  lokale, Anthropic-kompatible Provider (siehe PRD 08) — Versionsanforderungen,
+  manuelles Setup, Presets und `provider detect`, Kontextlänge/Modellwahl.
 - `troubleshooting.md`: häufige Fehlerbilder + Fixes; `leitum doctor`-
   Output erklärt.
 
@@ -185,7 +191,9 @@ Header in den Quelldateien sind nicht verpflichtend, aber begrüßenswert:
 
 In `docs/roadmap.md`, hervorhebbar in der README:
 
-- Weitere Provider-Presets (OpenRouter, LiteLLM, Ollama).
+- Lokale Provider-Presets (Ollama, LM Studio, llama.cpp, vLLM) und
+  `provider detect`: ausgeliefert, siehe PRD 08.
+- Weitere Provider-Presets (OpenRouter, LiteLLM).
 - macOS-Keychain-Integration für Tokens.
 - Benannte Kontexte (kubectl-style).
 - Andere Agenten: `leitum copilot`, `leitum opencode`.

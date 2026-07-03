@@ -149,3 +149,14 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS_PASSED_THROUGH]
 The authoritative product specification lives in `prd/`. Read the matching PRD
 before changing the corresponding area of the code, and update it when the
 product behavior changes.
+
+## Planning & documentation conventions (managed by /letsplan)
+
+- Artifact language (PRDs): German. (Issues, commits, PRs, code, docs: English —
+  see "Languages" above.)
+- PRD location: `prd/`
+- ADR location: none yet — no architectural decision record has been warranted;
+  significant, hard-to-reverse choices are documented inline in the relevant PRD.
+- Documentation: yes — format Markdown, language English, in `docs/`, audience
+  end users and contributors.
+- Work tracking: GitHub issues (see the `process-issues` skill).

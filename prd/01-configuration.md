@@ -74,6 +74,11 @@ Pro Provider:
 : Wert des Tokens. Unterstützt `${VAR}`-Interpolation aus dem laufenden
   Shell-Environment. Beim Schreiben des Configs niemals klartext-loggen.
   Bei `${VAR}` mit nicht gesetzter Variable: harter Fehler beim Launch.
+  Für **lokale Provider** (Ollama, LM Studio, llama.cpp, vLLM — siehe PRD 08)
+  ist der Token ein bekannter Platzhalter ohne Geheimwert (z. B. `ollama`).
+  Er darf dann literal inline stehen; `${VAR}`-Interpolation ist zulässig,
+  aber nicht erforderlich. Die `0600`-Regeln und die Redaction gelten
+  unverändert (kein Sonderfall).
 
 `auth.env_var` (string, optional, default `ANTHROPIC_AUTH_TOKEN`)
 : Name der Environment-Variable, in die das Token beim Launch geschrieben

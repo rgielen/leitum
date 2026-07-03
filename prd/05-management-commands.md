@@ -64,7 +64,12 @@ und schreibt eine Warnung auf stderr.
 
 ### `leitum provider add`
 
-Interaktiver Wizard. Fragt nach:
+Interaktiver Wizard. Erster Schritt ist die Wahl der **Provider-Art**
+(`questionary.select`): alle Presets aus der eingebauten Registry (siehe PRD 08)
+plus zwei Sondereinträge `Detect local providers…` (delegiert an
+`provider detect`) und `Custom (manual)`.
+
+**Custom (manual)** — der klassische Ablauf, fragt nach:
 
 1. `name` (Pflicht, Validierung wie in PRD 01).
 2. `base_url` (Pflicht).
@@ -76,6 +81,16 @@ Interaktiver Wizard. Fragt nach:
 6. Optional: "Test the provider now?" → führt einen `GET /v1/models` aus
    und meldet OK/Fehler.
 
+**Preset** — vorbelegter Ablauf für bekannte (v. a. lokale) Provider. `name` und
+`base_url` sind aus dem Preset vorbelegt; für lokale Presets entfällt der
+Token-Quellen- und Password-Prompt (der Platzhalter-Token wird direkt
+übernommen), `auth.env_var` und `extra_env` kommen aus dem Preset. Der optionale
+Test-Schritt bleibt. Details in PRD 08.
+
+**Nicht-interaktiv:** `leitum provider add --preset <key> [--name <n>]
+[--base-url <url>]` legt den Provider ohne Interaktion an. Unbekannter Key →
+Exit 2 mit Key-Liste; Namenskollision → Exit 2.
+
 Schreibt am Ende den neuen Eintrag ans Ende der `api-providers.yaml`,
 unter Erhalt aller Kommentare (deshalb `ruamel.yaml`).
 
@@ -84,6 +99,16 @@ unter Erhalt aller Kommentare (deshalb `ruamel.yaml`).
 Entfernt den Provider nach Confirm-Prompt. Wenn der entfernte Provider
 gerade `last_provider` ist, wird `last_provider` in `state.yaml` geleert.
 `--yes` überspringt den Prompt.
+
+### `leitum provider detect`
+
+Erkennt laufende lokale, Anthropic-kompatible Server (Ollama, LM Studio,
+llama.cpp, vLLM) über die `detect_ports` der Preset-Registry und bietet sie zum
+Hinzufügen an. Probt pro Preset `GET <base_url>/v1/models` mit kurzem Timeout,
+listet erreichbare Server samt Modellanzahl und legt ausgewählte Provider per
+Preset-Prefill an (optional inklusive eingepinnter Modelle). Kein laufender
+Server → Exit 0 mit Hinweis. `--json` gibt die Erkennung maschinenlesbar aus,
+ohne zu schreiben. Vollständige Spezifikation in PRD 08.
 
 ## `leitum refresh [--provider <name>]`
 
