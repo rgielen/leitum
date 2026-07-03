@@ -134,8 +134,11 @@ gitignored; committed outputs live under `docs/assets/`.
 - [x] td-b8d361 — claude act + payoff (`scenes/acts/ClaudeAct.tsx`)
 - [x] td-acdf86 — Outro scene (`scenes/Outro.tsx`)
 - [x] td-1b1bad — assembly: `Demo.tsx` (Intro→Terminal→Outro, crossfades), Root id `LeitumDemo`, DEMO_TOTAL=810f (~27s)
-- [ ] td-ce1886 — render pipeline (MP4 + GIF) — IN PROGRESS
-- [ ] td-de8866 — README embed + docs/assets
+- [x] td-ce1886 — render pipeline: `video/out/leitum-demo.mp4` (~36s) + `.gif` (1.7 MB)
+- [x] td-de8866 — copied to `docs/assets/`, README hero embed; PR #24 on `feat/demo-video`
+
+**DONE** — all scenes built, retimed to ~36s per feedback, rendered, and shipped in
+PR #24 (https://github.com/rgielen/leitum/pull/24). Awaiting human review/merge.
 
 ### Current state (for resume)
 
