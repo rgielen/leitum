@@ -10,15 +10,31 @@
 - **Model**: Load a model that supports tool calling (e.g., `Qwen/Qwen2.5-Coder-14B-Instruct` or `meta-llama/Llama-3.1-8B-Instruct`). Claude Code relies heavily on tool calling to interact with your codebase.
 - **Local Server**: Start the local server inside the LM Studio application (typically runs on port `1234`).
 
-### Option A: Interactive Wizard
+### Option A: Automatic Detection (Recommended)
 
-Run the interactive wizard, select **LM Studio (local)** (or select a custom provider if presets are not yet available), and follow the prompts:
+Start the local server in LM Studio, then run:
+
+```bash
+leitum provider detect
+```
+
+leitum will scan local ports, discover LM Studio at `http://localhost:1234`, detect your loaded/available models, and offer to add it.
+
+### Option B: Preset Command
+
+You can add LM Studio using the built-in preset:
+
+```bash
+leitum provider add --preset lm-studio
+```
+
+Or run the interactive wizard, select **LM Studio (local)**, and follow the prompts:
 
 ```bash
 leitum provider add
 ```
 
-### Option B: Manual Setup
+### Option C: Manual Setup
 
 Add the following block to your `~/.config/leitum/api-providers.yaml` file:
 
@@ -31,8 +47,6 @@ Add the following block to your `~/.config/leitum/api-providers.yaml` file:
 ```
 
 Because LM Studio runs locally and does not require actual authentication, a placeholder token like `lmstudio` is used. This is safe to keep in plain text in your configuration.
-
-*Note: Automated detection (`leitum provider detect`) and preset commands (`leitum provider add --preset lm-studio`) are upcoming features and will be available in a future release.*
 
 ## Model Discovery
 
