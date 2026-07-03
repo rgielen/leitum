@@ -1,7 +1,21 @@
-# leitum
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="design/logo/leitum-lockup.svg">
+    <img alt="leitum" src="design/logo/leitum-lockup-light.svg" width="340">
+  </picture>
+</p>
 
-[![PyPI version](https://img.shields.io/pypi/v/leitum.svg)](https://pypi.org/project/leitum/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+<p align="center"><em>Launch Claude Code against any LLM router.</em></p>
+
+<p align="center">
+  <a href="https://pypi.org/project/leitum/"><img src="https://img.shields.io/pypi/v/leitum.svg" alt="PyPI version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/leitum-demo.gif" width="860"
+       alt="leitum demo: initialize, add an Ollama provider, then launch Claude Code with interactive provider and model selection">
+</p>
 
 ## What is leitum?
 
