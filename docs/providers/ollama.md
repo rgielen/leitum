@@ -13,31 +13,15 @@
 ollama pull qwen2.5-coder:14b
 ```
 
-### Option A: Automatic Detection (Recommended)
+### Option A: Interactive Wizard
 
-Make sure Ollama is running, then run:
-
-```bash
-leitum provider detect
-```
-
-leitum will scan local ports, discover Ollama at `http://localhost:11434`, detect your pulled models, and offer to add Ollama as a provider.
-
-### Option B: Preset Command
-
-You can add Ollama using the built-in preset:
-
-```bash
-leitum provider add --preset ollama
-```
-
-Or run the interactive wizard, select **Ollama (local)**, and follow the prompts:
+Run the interactive wizard, select **Ollama (local)** (or select a custom provider if presets are not yet available), and follow the prompts:
 
 ```bash
 leitum provider add
 ```
 
-### Option C: Manual Setup
+### Option B: Manual Setup
 
 Add the following block to your `~/.config/leitum/api-providers.yaml` file:
 
@@ -52,6 +36,8 @@ Add the following block to your `~/.config/leitum/api-providers.yaml` file:
 ```
 
 Because Ollama runs locally and does not require actual authentication, a placeholder token like `ollama` is used. This is safe to keep in plain text in your configuration.
+
+*Note: Automated detection (`leitum provider detect`) and preset commands (`leitum provider add --preset ollama`) are upcoming features and will be available in a future release.*
 
 ## Model Discovery
 
