@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import httpx
 import pytest
 import respx
 from httpx import Response
@@ -99,7 +100,9 @@ def test_provider_add_interactive_detect_flow(tmp_config_dir: Path) -> None:
                 },
             )
         )
-        respx.get(url__regex=r"http://localhost:(?!11434).*").mock(side_effect=Exception("Refused"))
+        respx.get(url__regex=r"http://localhost:(?!11434).*").mock(
+            side_effect=httpx.ConnectError("Refused")
+        )
 
         with (
             patch("questionary.select") as mock_select,
