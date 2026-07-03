@@ -14,3 +14,4 @@ dist/
 
 # Isolated worktrees created for parallel issue workers
 .claude/worktrees/
+.todos/
