@@ -31,6 +31,7 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS...]
 | `--use-last-haiku`       | `-K` | Letztes HAIKU-Modell wiederverwenden.                                |
 | `--refresh`              | `-r` | Modell-Cache des gewählten Providers vor der Auswahl invalidieren und neu fetchen. |
 | `--no-project-config`    | —    | `leitum.yaml` im aktuellen Verzeichnis ignorieren.                   |
+| `--no-dotenv`            | —    | `.leitumenv` im aktuellen Verzeichnis nicht sourcen (siehe PRD 04).  |
 | `--project-config <path>`| —    | Alternative Project-Config laden statt `$CWD/leitum.yaml`.           |
 | `--save-local`           | `-l` | Aufgelöste Auswahl (Provider + Modelle) in `leitum.yaml` schreiben statt in den globalen State. |
 | `--dry-run`              | —    | Resolved Environment + finale Exec-Zeile drucken, nicht starten.     |
