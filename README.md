@@ -80,30 +80,37 @@ untouched).
 
 ### Project-local secrets with `.leitumenv`
 
-Store sensitive API tokens in a `.leitumenv` file in your project root. leitum
-loads this file automatically on every `leitum claude` invocation, injecting
-the key/value pairs into the environment before launching — without requiring
-direnv or manual shell exports.
+Place a `.leitumenv` file in your project root to supply API tokens
+automatically on every `leitum claude` invocation — without direnv or manual
+shell exports.
 
-```
+> **Security:** `.leitumenv` is executed as a bash script, so only use it in
+> repositories you trust. Never check it into version control.
+
+```bash
 # .leitumenv — never commit this file
+
+# Plain assignment (no shell needed)
 export REQUESTY_API_KEY=rq-...
-# Command substitution: fetch the token from 1Password on every launch
+
+# Command substitution — fetch the token from 1Password on every launch
 export REQUESTY_API_KEY="$(op read op://vault/requesty/Token)"
+
+# Any bash expansion works
 MY_CUSTOM_VAR=some_value
 ```
 
-The file is sourced as a bash script before any config loading, so `${VAR}`
-references in `api-providers.yaml` and `leitum.yaml` can use values from it.
-Command substitutions (`$(...)`) and all other bash expansions are fully
-supported.
+leitum sources this file via `bash` before loading any config, so `${VAR}`
+references in `api-providers.yaml` and `leitum.yaml` resolve against its values.
+All bash expansions are supported, including `$(...)`.
 
-Rules:
-- Shell environment takes precedence: a var already exported in your shell is
+Behaviour:
+- Shell environment takes precedence: a variable already set in your shell is
   never overwritten by `.leitumenv`.
 - Lines starting with `#` and blank lines are ignored.
-- A leading `export ` prefix is accepted and stripped.
-- Use `--no-dotenv` to skip loading the file entirely for a single invocation.
+- A leading `export ` prefix is accepted (but not required — `set -a` exports
+  all assignments automatically).
+- Use `--no-dotenv` to skip loading the file for a single invocation.
 
 **Add `.leitumenv` to your project's `.gitignore`** to prevent accidental
 commits of tokens. leitum's own `.gitignore` already includes it.

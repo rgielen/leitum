@@ -15,9 +15,43 @@ zusammengesetzten Environment.
 5. State persistieren (PRD 03).
 6. `claude` exec'en (siehe unten).
 
+## Projektlokale Secrets: `.leitumenv`
+
+Vor dem Laden der Konfiguration sucht `leitum claude` im aktuellen
+Arbeitsverzeichnis nach einer Datei namens `.leitumenv`. Ist sie vorhanden,
+wird sie als Bash-Skript gesourct. Die dabei entstehenden Variablenwerte — inkl.
+Command-Substitutions wie `$(op read ...)` — werden in `os.environ` injiziert,
+bevor die YAML-Konfiguration gelesen wird, sodass `${VAR}`-Interpolation in
+`api-providers.yaml` und `leitum.yaml` darauf zugreifen kann.
+
+**Sicherheitshinweis:** Da die Datei als Shell-Code ausgeführt wird, darf
+`.leitumenv` nur in vertrauenswürdigen Repositories verwendet werden. Sie soll
+niemals in die Versionskontrolle eingecheckt werden.
+
+### Regeln
+
+- Nur reguläre Dateien werden verarbeitet; Verzeichnisse und fehlende Dateien
+  werden still ignoriert.
+- Bash wird mit `set -a` gestartet, sodass alle Zuweisungen automatisch
+  exportiert werden — `export`-Präfix ist optional.
+- Shell-Umgebung hat Vorrang: ein bereits gesetzter Wert wird nicht
+  überschrieben.
+- Malformed Lines (kein `=`-Zeichen) lösen mit `--verbose` eine Warnung aus
+  (Inhalt wird nicht geloggt).
+- `--no-dotenv` deaktiviert das Laden für einen einzelnen Aufruf.
+- Werte werden niemals in Logs oder `--dry-run`-Ausgaben angezeigt.
+
+### Kompositionsreihenfolge (erweitert)
+
+0. `.leitumenv` sourcing: Variablen in `os.environ` setzen (shell-Werte haben
+   Vorrang).
+
+Danach folgen die bestehenden Schritte 1–6 (siehe unten).
+
 ## Sub-Environment
 
-Ausgangspunkt: vollständige Kopie des aktuellen Prozess-Environments.
+Ausgangspunkt: vollständige Kopie des aktuellen Prozess-Environments (inklusive
+der in Schritt 0 gesetzten `.leitumenv`-Werte).
 
 Dann werden gezielt Einträge gesetzt, ergänzt oder entfernt:
 
@@ -75,10 +109,13 @@ Dann werden gezielt Einträge gesetzt, ergänzt oder entfernt:
 ### Sonderfall `--verbose`
 
 - Vor dem `exec` werden auf stderr in dieser Reihenfolge geloggt:
-  1. Gewählter Provider und Base-URL.
-  2. Gesetzte ENV-Variablen (Namen, **nicht** Werte).
-  3. Gelöschte ENV-Variablen.
-  4. Final exec line (Argumente, ohne ENV).
+  1. `.leitumenv`-Datei (Pfad) und welche Keys tatsächlich in `os.environ`
+     gesetzt wurden (nur Namen, **nicht** Werte). Keys, die bereits in der
+     Shell-Umgebung existierten, erscheinen nicht.
+  2. Gewählter Provider und Base-URL.
+  3. Gesetzte ENV-Variablen (Namen, **nicht** Werte).
+  4. Gelöschte ENV-Variablen.
+  5. Final exec line (Argumente, ohne ENV).
 - Keine Anzeige von Token-Inhalten, auch nicht bei `--verbose`.
 
 ## Signale
