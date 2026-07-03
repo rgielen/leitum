@@ -7,38 +7,99 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (e.g. v0.1.2) to bump the tap to
+        description: Release tag (e.g. v0.1.4) to bump the tap to
         required: true
 
 permissions:
   contents: read
 
+# We deliberately do NOT use `brew bump-formula-pr` / action-homebrew-bump-formula
+# here. For a Python virtualenv formula, recent Homebrew auto-resolves the
+# transitive resource set via pip with `--uploaded-prior-to = now - 24h`, which
+# excludes the version we just published (uploaded minutes ago) and fails every
+# run with "Unable to determine dependencies ... update the resources manually".
+#
+# Instead this job only bumps the formula `url` + `sha256` from PyPI and opens a
+# PR. The resource blocks are left untouched: they only need regenerating when a
+# transitive dependency drifts, which is a human/skill responsibility (see the
+# `homebrew-tap-bump` project skill). Verify with `brew install --build-from-source`
+# before merging — the tap has no CI.
 jobs:
   bump:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      # Put brew on PATH for the trust step below. GitHub's runners ship
-      # Homebrew but only load its shellenv in login shells, so a bare `run`
-      # step cannot find `brew` without this.
-      - name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@main
-      # Homebrew 6.0 refuses to load formulae from third-party taps unless the
-      # tap is explicitly trusted, because loading runs Ruby code from the tap.
-      # The bump action loads the formula to compute the new url/sha256, so
-      # without this it aborts with UntrustedTapError. Trust is recorded per-tap
-      # in trust.json and is read by the action's own brew invocation on the
-      # same runner. HOMEBREW_NO_REQUIRE_TAP_TRUST=1 would also silence it but is
-      # deprecated and slated for removal, so we trust explicitly instead.
-      - name: Trust the leitum tap
+      - name: Bump leitum formula (url + sha256) and open a tap PR
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAG: ${{ github.event.workflow_run.head_branch || inputs.tag }}
         run: |
-          brew tap rgielen/taps
-          brew trust rgielen/taps
-      - name: Bump leitum formula in rgielen/homebrew-taps
-        uses: dawidd6/action-homebrew-bump-formula@v6
-        with:
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          tap: rgielen/homebrew-taps
-          formula: leitum
-          tag: ${{ github.event.workflow_run.head_branch || inputs.tag }}
-          force: false
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          echo "Bumping leitum Homebrew formula to ${VERSION}"
+
+          # PyPI's JSON API is served through a CDN and can lag a minute or two
+          # behind the publish that triggered this workflow — retry until it sees
+          # the new version.
+          JSON=""
+          for i in $(seq 1 30); do
+            if JSON=$(curl -fsS "https://pypi.org/pypi/leitum/${VERSION}/json"); then
+              break
+            fi
+            echo "PyPI does not yet serve ${VERSION} (attempt ${i}/30); waiting..."
+            sleep 10
+          done
+          if [ -z "${JSON}" ]; then
+            echo "::error::PyPI never served leitum ${VERSION}"; exit 1
+          fi
+
+          URL=$(printf '%s' "${JSON}" | jq -r '.urls[] | select(.packagetype=="sdist") | .url')
+          SHA=$(printf '%s' "${JSON}" | jq -r '.urls[] | select(.packagetype=="sdist") | .digests.sha256')
+          if [ -z "${URL}" ] || [ "${URL}" = "null" ] || [ -z "${SHA}" ] || [ "${SHA}" = "null" ]; then
+            echo "::error::Could not resolve an sdist url/sha256 for leitum ${VERSION}"; exit 1
+          fi
+          echo "url    = ${URL}"
+          echo "sha256 = ${SHA}"
+
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/rgielen/homebrew-taps.git" tap
+          cd tap
+          FORMULA="Formula/leitum.rb"
+
+          # Replace only the first (top-level, 2-space indented) `url` and `sha256`
+          # lines. Resource blocks are 4-space indented, so they never match.
+          awk -v url="${URL}" -v sha="${SHA}" '
+            !u && /^  url /    { sub(/url .*/,    "url \""    url "\""); u=1 }
+            !s && /^  sha256 / { sub(/sha256 .*/, "sha256 \"" sha "\""); s=1 }
+            { print }
+          ' "${FORMULA}" > "${FORMULA}.tmp" && mv "${FORMULA}.tmp" "${FORMULA}"
+
+          if git diff --quiet -- "${FORMULA}"; then
+            echo "Formula is already at ${VERSION}; nothing to do."
+            exit 0
+          fi
+          git --no-pager diff -- "${FORMULA}"
+
+          BRANCH="leitum-${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "${BRANCH}"
+          git commit -am "leitum ${VERSION}"
+          git push --force-with-lease -u origin "${BRANCH}"
+
+          if gh pr view "${BRANCH}" --repo rgielen/homebrew-taps >/dev/null 2>&1; then
+            echo "A PR for ${BRANCH} already exists; updated its branch."
+          else
+            gh pr create \
+              --repo rgielen/homebrew-taps \
+              --base main --head "${BRANCH}" \
+              --title "leitum ${VERSION}" \
+              --body "Bumps the \`leitum\` formula \`url\` + \`sha256\` to ${VERSION} (from PyPI).
+
+          The transitive Python resource blocks were **not** regenerated. If this release changed the dependency set, regenerate them before merging (see the \`homebrew-tap-bump\` skill). The tap has no CI, so verify locally first:
+
+          \`\`\`
+          brew install --build-from-source rgielen/taps/leitum
+          brew audit --strict rgielen/taps/leitum
+          brew test rgielen/taps/leitum
+          \`\`\`"
+          fi
