@@ -113,10 +113,7 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS_PASSED_THROUGH]
 - One logical change per commit. Squash trivia before opening a PR.
 - PR titles in the same Conventional-Commits style; PR bodies in English with a
   short summary and a test plan checklist.
-- **Never squash-merge automatically.** When merging a PR, preserve the
-  individual commits (merge commit or fast-forward) so every step stays
-  documented in `main`'s history. Only use a squash merge if the user explicitly
-  asks for one in that instance.
+- **Never squash-merge or standard-merge automatically.** Always merge PRs using a **rebase** strategy (`gh pr merge --rebase`) to keep a flat, linear commit log. Avoid standard merge commits. Only use a squash merge if the user explicitly asks for one in that instance.
 - **Always delete the PR branch after merge.** The repository has
   `delete_branch_on_merge` enabled, so the **remote** head branch is removed
   automatically on merge. The matching **local** cleanup is manual and must
