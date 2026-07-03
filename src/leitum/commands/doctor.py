@@ -156,7 +156,12 @@ def run_doctor(project_config_path: Path | None = None) -> None:
                             client.head(url)
                         _ok(f"Provider '{p.name}': reachable (no cache yet; run 'leitum refresh')")
                     except Exception as exc:
-                        _warn(f"Provider '{p.name}': no cache and unreachable ({exc})")
+                        from urllib.parse import urlparse
+
+                        parsed = urlparse(p.base_url)
+                        is_local = parsed.hostname in ("localhost", "127.0.0.1")
+                        hint = " (is the local server running?)" if is_local else ""
+                        _warn(f"Provider '{p.name}': no cache and unreachable ({exc}){hint}")
                         warnings += 1
 
     # 6. Claude binary

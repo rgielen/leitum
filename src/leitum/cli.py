@@ -229,11 +229,21 @@ def provider_show(
 
 
 @provider_app.command("add")
-def provider_add() -> None:
-    """Interactively add a new provider."""
+def provider_add(
+    preset: str | None = typer.Option(
+        None, "--preset", help="Add provider via a preset non-interactively."
+    ),
+    name: str | None = typer.Option(
+        None, "--name", help="Override default provider name when using --preset."
+    ),
+    base_url: str | None = typer.Option(
+        None, "--base-url", help="Override preset base URL when using --preset."
+    ),
+) -> None:
+    """Add a new provider (interactively, or non-interactively via --preset)."""
     from leitum.commands.provider import run_provider_add
 
-    run_provider_add()
+    run_provider_add(preset=preset, name=name, base_url=base_url)
 
 
 @provider_app.command("remove")

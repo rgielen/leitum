@@ -110,67 +110,159 @@ def run_provider_show(name: str, reveal_token: bool = False) -> None:
             pass
 
 
-def run_provider_add() -> None:
+def run_provider_add(
+    preset: str | None = None,
+    name: str | None = None,
+    base_url: str | None = None,
+) -> None:
     import questionary
+
+    from leitum.providers.presets import PRESETS, get_preset
 
     config = _load_config()
 
-    name = questionary.text(
-        "Provider name (lowercase, kebab-case):",
-        validate=lambda v: (
-            bool(__import__("re").match(r"^[a-z][a-z0-9-]*$", v)) or "Must match ^[a-z][a-z0-9-]*$"
-        ),
+    if preset is not None:
+        p_preset = get_preset(preset)
+        if p_preset is None:
+            valid_presets = ", ".join(p.key for p in PRESETS)
+            print(
+                f"Error: unknown preset '{preset}'. Valid presets: {valid_presets}", file=sys.stderr
+            )
+            raise SystemExit(2)
+
+        final_name = name or p_preset.default_name
+        import re
+
+        if not re.match(r"^[a-z][a-z0-9-]*$", final_name):
+            print(
+                f"Error: provider name '{final_name}' is invalid. Must match ^[a-z][a-z0-9-]*$",
+                file=sys.stderr,
+            )
+            raise SystemExit(2)
+
+        if config.get_provider(final_name) is not None:
+            print(f"Error: provider '{final_name}' already exists.", file=sys.stderr)
+            raise SystemExit(2)
+
+        final_base_url = base_url or p_preset.base_url
+        _append_provider(
+            name=final_name,
+            base_url=final_base_url,
+            token=p_preset.token,
+            auth_env_var=p_preset.auth_env_var,
+            extra_env=p_preset.extra_env,
+        )
+        print(f"Provider '{final_name}' added to {providers_config_path()}.")
+        return
+
+    # Interactive flow
+    choices = [questionary.Choice(p.display, value=p.key) for p in PRESETS]
+    choices.append(questionary.Choice("Detect local providers…", value="detect"))
+    choices.append(questionary.Choice("Custom (manual)", value="custom"))
+
+    provider_type = questionary.select(
+        "Provider type:",
+        choices=choices,
     ).ask()
-    if name is None:
+    if provider_type is None:
         raise SystemExit(130)
 
-    if config.get_provider(name) is not None:
-        print(f"Error: provider '{name}' already exists.", file=sys.stderr)
-        raise SystemExit(2)
+    if provider_type == "detect":
+        print("Please run 'leitum provider detect' to find local providers.", file=sys.stderr)
+        raise SystemExit(0)
 
-    base_url = questionary.text("Base URL (e.g. https://router.requesty.ai):").ask()
-    if base_url is None:
-        raise SystemExit(130)
-
-    token_source = questionary.select(
-        "Token source:",
-        choices=[
-            questionary.Choice("Environment variable reference (recommended)", value="env"),
-            questionary.Choice("Inline secret (stored in plaintext!)", value="inline"),
-        ],
-    ).ask()
-    if token_source is None:
-        raise SystemExit(130)
-
-    default_env_name = name.upper().replace("-", "_") + "_API_KEY"
-    if token_source == "env":
-        env_name = questionary.text(
-            "Environment variable name:",
-            default=default_env_name,
+    if provider_type == "custom":
+        name_val = questionary.text(
+            "Provider name (lowercase, kebab-case):",
+            validate=lambda v: (
+                bool(__import__("re").match(r"^[a-z][a-z0-9-]*$", v))
+                or "Must match ^[a-z][a-z0-9-]*$"
+            ),
         ).ask()
-        if env_name is None:
+        if name_val is None:
             raise SystemExit(130)
-        token = f"${{{env_name}}}"
+
+        if config.get_provider(name_val) is not None:
+            print(f"Error: provider '{name_val}' already exists.", file=sys.stderr)
+            raise SystemExit(2)
+
+        base_url_val = questionary.text("Base URL (e.g. https://router.requesty.ai):").ask()
+        if base_url_val is None:
+            raise SystemExit(130)
+
+        token_source = questionary.select(
+            "Token source:",
+            choices=[
+                questionary.Choice("Environment variable reference (recommended)", value="env"),
+                questionary.Choice("Inline secret (stored in plaintext!)", value="inline"),
+            ],
+        ).ask()
+        if token_source is None:
+            raise SystemExit(130)
+
+        default_env_name = name_val.upper().replace("-", "_") + "_API_KEY"
+        if token_source == "env":
+            env_name = questionary.text(
+                "Environment variable name:",
+                default=default_env_name,
+            ).ask()
+            if env_name is None:
+                raise SystemExit(130)
+            token = f"${{{env_name}}}"
+        else:
+            print("WARNING: storing a token inline is not recommended.", file=sys.stderr)
+            token = questionary.password("Token value:").ask()
+            if token is None:
+                raise SystemExit(130)
+
+        auth_env_var = questionary.select(
+            "Auth environment variable name (what Claude Code reads):",
+            choices=["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY"],
+            default="ANTHROPIC_AUTH_TOKEN",
+        ).ask()
+        if auth_env_var is None:
+            raise SystemExit(130)
+
+        extra_env: dict[str, str] = {}
+
     else:
-        print("WARNING: storing a token inline is not recommended.", file=sys.stderr)
-        token = questionary.password("Token value:").ask()
+        p_preset = get_preset(provider_type)
+        if p_preset is None:
+            print(f"Error: preset for provider type '{provider_type}' not found.", file=sys.stderr)
+            raise SystemExit(2)
+
+        name_val = questionary.text(
+            "Provider name (lowercase, kebab-case):",
+            default=p_preset.default_name,
+            validate=lambda v: (
+                bool(__import__("re").match(r"^[a-z][a-z0-9-]*$", v))
+                or "Must match ^[a-z][a-z0-9-]*$"
+            ),
+        ).ask()
+        if name_val is None:
+            raise SystemExit(130)
+
+        if config.get_provider(name_val) is not None:
+            print(f"Error: provider '{name_val}' already exists.", file=sys.stderr)
+            raise SystemExit(2)
+
+        base_url_val = questionary.text("Base URL:", default=p_preset.base_url).ask()
+        if base_url_val is None:
+            raise SystemExit(130)
+
+        token = questionary.text("Token value:", default=p_preset.token).ask()
         if token is None:
             raise SystemExit(130)
 
-    auth_env_var = questionary.select(
-        "Auth environment variable name (what Claude Code reads):",
-        choices=["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY"],
-        default="ANTHROPIC_AUTH_TOKEN",
-    ).ask()
-    if auth_env_var is None:
-        raise SystemExit(130)
+        auth_env_var = p_preset.auth_env_var
+        extra_env = p_preset.extra_env
 
     test_now = questionary.confirm("Test the provider now (GET /v1/models)?", default=True).ask()
     if test_now:
-        _test_provider(base_url, token)
+        _test_provider(base_url_val, token)
 
-    _append_provider(name, base_url, token, auth_env_var)
-    print(f"Provider '{name}' added to {providers_config_path()}.")
+    _append_provider(name_val, base_url_val, token, auth_env_var, extra_env)
+    print(f"Provider '{name_val}' added to {providers_config_path()}.")
 
 
 def _test_provider(base_url: str, token: str) -> None:
@@ -194,7 +286,13 @@ def _test_provider(base_url: str, token: str) -> None:
         print(f"Warning: test failed: {exc}", file=sys.stderr)
 
 
-def _append_provider(name: str, base_url: str, token: str, auth_env_var: str) -> None:
+def _append_provider(
+    name: str,
+    base_url: str,
+    token: str,
+    auth_env_var: str,
+    extra_env: dict[str, str] | None = None,
+) -> None:
     from io import StringIO
 
     from ruamel.yaml import YAML
@@ -216,6 +314,12 @@ def _append_provider(name: str, base_url: str, token: str, auth_env_var: str) ->
     if auth_env_var != "ANTHROPIC_AUTH_TOKEN":
         auth["env_var"] = auth_env_var
     new_provider["auth"] = auth
+
+    if extra_env:
+        c_env = CommentedMap()
+        for k, v in extra_env.items():
+            c_env[k] = v
+        new_provider["extra_env"] = c_env
 
     doc["providers"].append(new_provider)
     buf = StringIO()
