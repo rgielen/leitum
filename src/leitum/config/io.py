@@ -47,6 +47,49 @@ def load_project_config(path: Path) -> ProjectConfig:
     return ProjectConfig.model_validate(raw)
 
 
+# Slot order kept explicit so a written models block is deterministic and matches
+# the resolver's ordering, independent of dict iteration order in the caller.
+_PROJECT_MODEL_SLOTS = ("start", "opus", "sonnet", "haiku")
+
+
+def save_project_config(path: Path, *, provider: str, models: dict[str, str]) -> None:
+    """Write the resolved selection to a project ``leitum.yaml``.
+
+    Merges into an existing file via a ruamel round-trip so comments and any
+    ``extra_env`` block survive; only ``provider`` and ``models`` are rewritten.
+    ``models`` must contain only the slots that are actually set — unset slots are
+    omitted, which also prunes them from a previously pinned ``models`` block.
+
+    Uses normal file permissions (this file lives in the repo working tree); it
+    must never contain tokens, and the values written here (provider name, model
+    ids) carry none.
+    """
+    from ruamel.yaml.comments import CommentedMap
+
+    data: Any
+    if path.exists():
+        data = load_yaml(path)
+        if not isinstance(data, CommentedMap):
+            data = CommentedMap()
+    else:
+        data = CommentedMap()
+
+    data["schema_version"] = data.get("schema_version", 1)
+    data["provider"] = provider
+
+    models_map: CommentedMap = CommentedMap()
+    for slot in _PROJECT_MODEL_SLOTS:
+        value = models.get(slot)
+        if value:
+            models_map[slot] = value
+    if models_map:
+        data["models"] = models_map
+    elif "models" in data:
+        del data["models"]
+
+    dump_yaml(data, path)
+
+
 EXAMPLE_PROVIDERS_CONFIG = """\
 schema_version: 1
 providers:

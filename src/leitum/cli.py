@@ -32,6 +32,7 @@ class _Opts:
     refresh: bool = False
     no_project_config: bool = False
     project_config: Path | None = None
+    save_local: bool = False
     dry_run: bool = False
     verbose: bool = False
 
@@ -68,6 +69,12 @@ def root(
     project_config: Path | None = typer.Option(
         None, "--project-config", help="Use alternative project config."
     ),
+    save_local: bool = typer.Option(
+        False,
+        "--save-local",
+        "-l",
+        help="Save the resolved selection to leitum.yaml instead of global state.",
+    ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Print resolved env and exec line, do not launch."
     ),
@@ -96,6 +103,7 @@ def root(
     obj.refresh = refresh
     obj.no_project_config = no_project_config
     obj.project_config = project_config
+    obj.save_local = save_local
     obj.dry_run = dry_run
     obj.verbose = verbose
 
@@ -137,6 +145,7 @@ def claude(
         refresh=opts.refresh,
         no_project_config=opts.no_project_config,
         project_config_path=opts.project_config,
+        save_local=opts.save_local,
         dry_run=opts.dry_run,
         verbose=opts.verbose,
     )

@@ -11,7 +11,9 @@ from pathlib import Path
 import pytest
 
 
-def _run_leitum(*args: str, env: dict | None = None) -> subprocess.CompletedProcess:
+def _run_leitum(
+    *args: str, env: dict | None = None, cwd: Path | None = None
+) -> subprocess.CompletedProcess:
     import os
 
     full_env = dict(os.environ)
@@ -22,6 +24,7 @@ def _run_leitum(*args: str, env: dict | None = None) -> subprocess.CompletedProc
         capture_output=True,
         text=True,
         env=full_env,
+        cwd=str(cwd) if cwd is not None else None,
     )
 
 
@@ -225,6 +228,117 @@ class TestInitCommand:
         assert result.returncode == 0
         # Should not overwrite
         assert "already exists" in result.stdout
+
+
+class TestSaveLocal:
+    def test_save_local_writes_leitum_yaml_and_skips_state(
+        self,
+        tmp_path: Path,
+        tmp_config_dir: Path,
+        tmp_state_dir: Path,
+        minimal_providers_yaml: Path,
+        fake_claude: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from leitum.config.paths import state_path
+
+        work = tmp_path / "work"
+        work.mkdir()
+        result = _run_leitum(
+            "-l",
+            "-p",
+            "requesty",
+            "-m",
+            "anthropic/claude-sonnet-4-5",
+            "claude",
+            env={"REQUESTY_API_KEY": "my-secret-key"},
+            cwd=work,
+        )
+        assert result.returncode == 0
+
+        written = work / "leitum.yaml"
+        assert written.exists(), "--save-local must write leitum.yaml in the cwd"
+        text = written.read_text(encoding="utf-8")
+        assert "provider: requesty" in text
+        assert "anthropic/claude-sonnet-4-5" in text
+        # The selection file must never carry the token.
+        assert "my-secret-key" not in text
+
+        assert not state_path().exists(), "--save-local must not write global state"
+
+    def test_save_local_target_project_config_path(
+        self,
+        tmp_path: Path,
+        tmp_config_dir: Path,
+        tmp_state_dir: Path,
+        minimal_providers_yaml: Path,
+        fake_claude: Path,
+    ) -> None:
+        work = tmp_path / "work"
+        work.mkdir()
+        alt = work / "custom.yaml"
+        result = _run_leitum(
+            "-l",
+            "--project-config",
+            str(alt),
+            "-p",
+            "requesty",
+            "-m",
+            "anthropic/claude-sonnet-4-5",
+            "claude",
+            env={"REQUESTY_API_KEY": "k"},
+            cwd=work,
+        )
+        assert result.returncode == 0
+        assert alt.exists()
+        assert not (work / "leitum.yaml").exists()
+
+    def test_save_local_with_no_project_config_exits_2(
+        self,
+        tmp_path: Path,
+        tmp_config_dir: Path,
+        tmp_state_dir: Path,
+        minimal_providers_yaml: Path,
+    ) -> None:
+        work = tmp_path / "work"
+        work.mkdir()
+        result = _run_leitum(
+            "-l",
+            "--no-project-config",
+            "-p",
+            "requesty",
+            "claude",
+            env={"REQUESTY_API_KEY": "k"},
+            cwd=work,
+        )
+        assert result.returncode == 2
+
+    def test_dry_run_save_local_writes_nothing(
+        self,
+        tmp_path: Path,
+        tmp_config_dir: Path,
+        tmp_state_dir: Path,
+        minimal_providers_yaml: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from leitum.config.paths import state_path
+
+        work = tmp_path / "work"
+        work.mkdir()
+        result = _run_leitum(
+            "--dry-run",
+            "-l",
+            "-p",
+            "requesty",
+            "-m",
+            "anthropic/claude-sonnet-4-5",
+            "claude",
+            env={"REQUESTY_API_KEY": "k"},
+            cwd=work,
+        )
+        assert result.returncode == 0
+        assert not (work / "leitum.yaml").exists(), "dry-run --save-local must not write"
+        assert not state_path().exists()
 
 
 class TestFakeClaude:
