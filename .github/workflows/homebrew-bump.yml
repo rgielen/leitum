@@ -16,6 +16,22 @@ jobs:
   bump:
     runs-on: ubuntu-latest
     steps:
+      # Put brew on PATH for the trust step below. GitHub's runners ship
+      # Homebrew but only load its shellenv in login shells, so a bare `run`
+      # step cannot find `brew` without this.
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+      # Homebrew 6.0 refuses to load formulae from third-party taps unless the
+      # tap is explicitly trusted, because loading runs Ruby code from the tap.
+      # The bump action loads the formula to compute the new url/sha256, so
+      # without this it aborts with UntrustedTapError. Trust is recorded per-tap
+      # in trust.json and is read by the action's own brew invocation on the
+      # same runner. HOMEBREW_NO_REQUIRE_TAP_TRUST=1 would also silence it but is
+      # deprecated and slated for removal, so we trust explicitly instead.
+      - name: Trust the leitum tap
+        run: |
+          brew tap rgielen/taps
+          brew trust rgielen/taps
       - name: Bump leitum formula in rgielen/homebrew-taps
         uses: dawidd6/action-homebrew-bump-formula@v6
         with:
