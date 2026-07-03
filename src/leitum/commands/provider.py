@@ -227,7 +227,9 @@ def run_provider_add(
 
     else:
         p_preset = get_preset(provider_type)
-        assert p_preset is not None
+        if p_preset is None:
+            print(f"Error: preset for provider type '{provider_type}' not found.", file=sys.stderr)
+            raise SystemExit(2)
 
         name_val = questionary.text(
             "Provider name (lowercase, kebab-case):",

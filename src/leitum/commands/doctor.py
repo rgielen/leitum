@@ -160,9 +160,7 @@ def run_doctor(project_config_path: Path | None = None) -> None:
 
                         parsed = urlparse(p.base_url)
                         is_local = parsed.hostname in ("localhost", "127.0.0.1")
-                        hint = (
-                            " (is the local server (Ollama/LM Studio) running?)" if is_local else ""
-                        )
+                        hint = " (is the local server running?)" if is_local else ""
                         _warn(f"Provider '{p.name}': no cache and unreachable ({exc}){hint}")
                         warnings += 1
 

@@ -21,6 +21,12 @@ def test_presets_registry() -> None:
     assert ollama.is_local is True
     assert ollama.detect_ports == [11434]
 
+    # Test deep copy mutation protection
+    ollama.extra_env["OLLAMA_CONTEXT_LENGTH"] = "99999"
+    ollama2 = get_preset("ollama")
+    assert ollama2 is not None
+    assert ollama2.extra_env["OLLAMA_CONTEXT_LENGTH"] == "32768"
+
     unknown = get_preset("unknown")
     assert unknown is None
 

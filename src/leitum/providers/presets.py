@@ -74,8 +74,8 @@ PRESETS: list[ProviderPreset] = [
 
 
 def get_preset(key: str) -> ProviderPreset | None:
-    """Get a preset by key."""
+    """Get a preset by key (returns a deep copy to prevent mutation)."""
     for p in PRESETS:
         if p.key == key:
-            return p
+            return p.model_copy(deep=True)
     return None
