@@ -173,14 +173,28 @@ Wenn `stdin`/`stdout` kein TTY ist (z.B. CI):
 
 ## Persistenz nach Auswahl
 
-- Nach erfolgreicher Auflösung (vor dem Exec) wird `state.yaml` so
-  aktualisiert:
+Nach erfolgreicher Auflösung (vor dem Exec) persistiert `leitum` die Auswahl.
+Wohin, hängt von `-l`/`--save-local` ab:
+
+### Standard: globaler State
+
+- `state.yaml` wird so aktualisiert:
   - `last_provider` → gewählter Provider.
   - `providers.<name>.models.<slot>` → für jeden Slot, der tatsächlich
     gesetzt wird, der finale Wert. Slots, die "do not set" sind, werden
     **nicht** in den State geschrieben (vorhandene alte Werte bleiben
     bestehen, damit `--use-last-*` weiter funktioniert).
   - `providers.<name>.last_used` → aktueller Timestamp.
+
+### Mit `-l`/`--save-local`: lokale Project-Config
+
+- Die Auswahl wird in `leitum.yaml` geschrieben (Merge, Details in PRD 01,
+  Abschnitt "Schreiben per `--save-local`"), und `state.yaml` wird für diesen
+  Launch **nicht** angefasst.
+
+### Gemeinsam
+
+- `--dry-run` überspringt in beiden Fällen jeden Schreibvorgang.
 
 ## Edge Cases
 

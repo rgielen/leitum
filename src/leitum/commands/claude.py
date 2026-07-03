@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from leitum.config.io import load_project_config, load_providers_config
+from leitum.config.io import load_project_config, load_providers_config, save_project_config
 from leitum.config.models import ModelSlot
 from leitum.config.paths import providers_config_path
 from leitum.launch import exec_claude
@@ -31,6 +31,7 @@ def run_claude(
     refresh: bool,
     no_project_config: bool,
     project_config_path: Path | None,
+    save_local: bool,
     dry_run: bool,
     verbose: bool,
 ) -> None:
@@ -42,6 +43,12 @@ def run_claude(
     if no_project_config and project_config_path is not None:
         print(
             "Error: --no-project-config and --project-config are mutually exclusive.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    if save_local and no_project_config:
+        print(
+            "Error: --save-local and --no-project-config are mutually exclusive.",
             file=sys.stderr,
         )
         raise SystemExit(2)
@@ -63,9 +70,9 @@ def run_claude(
     state = load_state()
 
     # Load project config
+    pc_path = project_config_path or Path("leitum.yaml")
     project_cfg = None
     if not no_project_config:
-        pc_path = project_config_path or Path("leitum.yaml")
         if pc_path.exists():
             try:
                 raw_pc = load_project_config(pc_path)
@@ -152,11 +159,24 @@ def run_claude(
         verbose=verbose,
     )
 
-    # Persist state — skipped in dry-run to remain side-effect-free
-    if not dry_run:
-        state.last_provider = provider.name
-        from leitum.selection.resolver import _SLOTS
+    # Persist the selection — skipped in dry-run to remain side-effect-free.
+    # With --save-local the selection goes to leitum.yaml and the global state is
+    # intentionally left untouched; otherwise it is written to the global state.
+    from leitum.selection.resolver import _SLOTS
 
+    if dry_run:
+        if save_local and verbose:
+            print(f"Dry-run: would write selection to {pc_path}", file=sys.stderr)
+    elif save_local:
+        selected: dict[str, str] = {slot: val for slot in _SLOTS if (val := resolved.get(slot))}
+        try:
+            save_project_config(pc_path, provider=provider.name, models=selected)
+            if verbose:
+                print(f"Wrote selection to {pc_path}", file=sys.stderr)
+        except Exception as exc:
+            print(f"Warning: could not write {pc_path}: {exc}", file=sys.stderr)
+    else:
+        state.last_provider = provider.name
         for slot in _SLOTS:
             val = resolved.get(slot)
             if val:

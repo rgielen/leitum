@@ -73,6 +73,11 @@ models:
   start: anthropic/claude-sonnet-4-5
 ```
 
+Or let leitum write it for you: run `leitum -l claude`, make your selection, and
+the resolved provider and models are saved to `leitum.yaml` (comments and
+`extra_env` in an existing file are preserved, and the global state is left
+untouched).
+
 ## CLI Reference
 
 ```
@@ -92,6 +97,7 @@ Global options (before the subcommand):
 | `--haiku <id>` | `-k` | Set HAIKU model |
 | `--refresh` | `-r` | Refresh model cache |
 | `--no-project-config` | | Ignore leitum.yaml |
+| `--save-local` | `-l` | Save the resolved selection to leitum.yaml instead of global state |
 | `--dry-run` | | Print env + exec line, do not launch |
 | `--verbose` | `-v` | Verbose logging on stderr |
 
