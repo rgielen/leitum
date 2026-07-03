@@ -23,6 +23,7 @@ leitum [OPTIONS] <subcommand> [ARGS...]
 | `--refresh` | `-r` | Refresh model cache before selection |
 | `--no-project-config` | | Ignore `leitum.yaml` |
 | `--project-config <path>` | | Use alternative project config |
+| `--save-local` | `-l` | Save the resolved selection to `leitum.yaml` instead of global state |
 | `--dry-run` | | Print resolved env and exec line |
 | `--verbose` | `-v` | Verbose stderr logging |
 | `--version` | | Show version |
@@ -38,7 +39,15 @@ leitum -p requesty claude --resume
 leitum -p requesty -m anthropic/claude-sonnet-4-5 claude -p "Explain this code"
 leitum --dry-run -p requesty claude
 leitum -P -M claude   # reuse last provider and model
+leitum -l claude      # save the selection to leitum.yaml (not to global state)
 ```
+
+With `--save-local`/`-l`, the resolved provider and models are written to
+`leitum.yaml` (or the `--project-config` path) after selection and before
+launch, and the global `state.yaml` is not written. An existing file is merged:
+comments and `extra_env` are preserved; only `provider` and `models` are
+rewritten. It cannot be combined with `--no-project-config` (mutually
+exclusive), and `--dry-run` writes nothing.
 
 ## leitum init
 

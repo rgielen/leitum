@@ -72,6 +72,11 @@ extra_env:
 This file pins provider and models for the repository. It overrides `state.yaml`
 but is itself overridden by explicit CLI flags.
 
+You can generate or update it with `leitum -l claude` (`--save-local`): the
+resolved provider and models are written here after selection, and the global
+state is not touched. An existing file is merged, so comments and `extra_env`
+survive; only `provider` and `models` are rewritten to the current selection.
+
 ## state.yaml
 
 Written automatically. Do not edit manually.

@@ -32,6 +32,7 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS...]
 | `--refresh`              | `-r` | Modell-Cache des gewählten Providers vor der Auswahl invalidieren und neu fetchen. |
 | `--no-project-config`    | —    | `leitum.yaml` im aktuellen Verzeichnis ignorieren.                   |
 | `--project-config <path>`| —    | Alternative Project-Config laden statt `$CWD/leitum.yaml`.           |
+| `--save-local`           | `-l` | Aufgelöste Auswahl (Provider + Modelle) in `leitum.yaml` schreiben statt in den globalen State. |
 | `--dry-run`              | —    | Resolved Environment + finale Exec-Zeile drucken, nicht starten.     |
 | `--verbose`              | `-v` | Verbose Logging auf stderr. Tokens redacted.                         |
 | `--help`                 | `-h` | Hilfe. `-h` bleibt für Hilfe reserviert.                             |
@@ -74,6 +75,24 @@ Provider-Auflösung wird der Cache des gewählten Providers gelöscht und ein
 frischer `GET /v1/models` ausgeführt, bevor die Modell-Auswahl beginnt
 (siehe PRD 03).
 
+### Auswahl lokal speichern (`-l`/`--save-local`)
+
+Ist `-l` gesetzt, wird nach der Auflösung von Provider und Modellen und
+**vor** dem Launch die aufgelöste Auswahl in die Project-Config geschrieben
+(Details in PRD 01, Abschnitt "Schreiben per `--save-local`"). Kurzform:
+
+- Ziel ist `$CWD/leitum.yaml` bzw. der mit `--project-config <path>` gesetzte
+  Pfad.
+- Eine bestehende Datei wird gemergt: Kommentare und `extra_env` bleiben
+  erhalten, nur `provider` und `models` werden auf die aktuelle Auswahl
+  gesetzt. Slots ohne gesetzten Wert werden aus dem `models`-Block entfernt.
+- In diesem Modus wird der globale `state.yaml` **nicht** zusätzlich
+  geschrieben — die Persistenz wandert vollständig in die eingecheckte
+  Project-Config.
+- `--dry-run` schreibt nichts (seiteneffektfrei); mit `-v` erscheint nur ein
+  Hinweis, dass geschrieben *würde*.
+- `-l` und `--no-project-config` schließen sich gegenseitig aus (Exit 2).
+
 ### Konfliktbehandlung
 
 - Wenn `--model` und `--use-last-model` zusammen angegeben werden: Hard
@@ -82,6 +101,8 @@ frischer `GET /v1/models` ausgeführt, bevor die Modell-Auswahl beginnt
 - Wenn ein Wert (`-m foo`) nicht in der Modell-Liste des Providers vorkommt:
   Warnung auf stderr, aber Launch geht durch (User weiß evtl. mehr als die
   Discovery).
+- `-l`/`--save-local` zusammen mit `--no-project-config`: Hard Error (Exit 2),
+  da widersprüchlich (kein Project-Config lesen, aber eines schreiben).
 
 ## Subcommands
 
@@ -130,6 +151,10 @@ leitum claude
 
 # Project-Config ignorieren und Provider ad-hoc überschreiben:
 leitum --no-project-config -p experimental claude
+
+# Interaktiv Provider/Modelle wählen und die Auswahl ins eingecheckte
+# leitum.yaml schreiben (kein Schreiben in den globalen State):
+leitum -l claude
 ```
 
 ## Exit-Codes

@@ -244,10 +244,13 @@ Keine Anforderungen. Die Datei ist Teil des Repos und unterliegt dessen
 
 ### Interaktion mit state.yaml
 
-- `leitum.yaml` schreibt nichts zurück. State-Writeback für interaktiv
-  bestätigte Slots läuft normal weiter (für gepinnte Slots wirkungslos —
-  die Werte landen in `state.yaml`, gewinnen aber beim nächsten Launch
-  nicht gegen `leitum.yaml`).
+- Ohne `-l` schreibt `leitum.yaml` nichts zurück. State-Writeback für
+  interaktiv bestätigte Slots läuft normal weiter (für gepinnte Slots
+  wirkungslos — die Werte landen in `state.yaml`, gewinnen aber beim nächsten
+  Launch nicht gegen `leitum.yaml`).
+- Mit `-l`/`--save-local` wird die Auswahl in `leitum.yaml` geschrieben und
+  der State-Writeback **entfällt** für diesen Launch (`state.yaml` bleibt
+  unverändert).
 - Wird `leitum.yaml` aus dem Repo entfernt, übernimmt der State wieder
   wie vorher.
 
@@ -257,6 +260,33 @@ Keine Anforderungen. Die Datei ist Teil des Repos und unterliegt dessen
   vollständig.
 - `--project-config <path>`: lädt eine alternative Datei statt
   `$CWD/leitum.yaml`. Praktisch für Tests und CI-Sonderfälle.
+
+### Schreiben per `--save-local`
+
+Normalerweise schreibt `leitum` nichts in `leitum.yaml` zurück. Mit
+`-l`/`--save-local` (siehe PRD 02) wird die aufgelöste Auswahl nach der
+Modell-Auflösung und vor dem Launch in die Project-Config geschrieben:
+
+- **Ziel**: `$CWD/leitum.yaml` bzw. der mit `--project-config <path>` gesetzte
+  Pfad.
+- **Merge statt Überschreiben**: existiert die Datei, wird sie per
+  ruamel-Round-Trip geladen; Kommentare und `extra_env` bleiben erhalten. Nur
+  `provider` und `models` werden auf die aktuelle Auswahl gesetzt. `models`
+  enthält ausschließlich die tatsächlich gesetzten Slots — nicht gesetzte
+  ("do not set") Slots werden aus einem vorhandenen `models`-Block entfernt.
+  Ist am Ende kein Slot gesetzt, entfällt der `models`-Block ganz.
+- **`schema_version`** wird auf `1` gesetzt, falls noch nicht vorhanden.
+- **Keine Tokens**: geschrieben werden nur Provider-Name und Modell-IDs. Ein
+  `auth:`-Block ist im Project-Config-Schema nicht vorgesehen und wird nie
+  geschrieben.
+- **Permissions**: normale Repo-Dateirechte (respektiert die umask). Anders
+  als bei `api-providers.yaml`/`state.yaml` wird weder `0600` erzwungen noch
+  das Elternverzeichnis (das CWD) in seinen Rechten verändert.
+- **`--dry-run`**: schreibt nichts (seiteneffektfrei); mit `-v` nur ein
+  Hinweis auf stderr, dass geschrieben würde.
+- **Ausschluss**: `-l` und `--no-project-config` schließen sich aus (Exit 2).
+- **Kein State-Writeback**: in diesem Modus wird `state.yaml` bewusst nicht
+  zusätzlich geschrieben (siehe unten).
 
 ## Modell-Cache
 
