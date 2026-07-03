@@ -108,7 +108,7 @@ See [docs/commands.md](docs/commands.md) for details.
 ## Providers
 
 - [Requesty](docs/providers/requesty.md)
-- Local Providers (fully supported):
+- Local Providers:
   - [Ollama](docs/providers/ollama.md)
   - [LM Studio](docs/providers/lm-studio.md)
   - [llama.cpp, vLLM, and other local models](docs/providers/local.md)
