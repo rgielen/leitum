@@ -34,6 +34,9 @@ In allen anderen Fällen wird der Provider deterministisch bestimmt.
 - Vorbelegung (Cursor-Position): `state.last_provider`, sonst Eintrag 0.
 - Auswahl per Pfeil + Enter, Abbruch per Ctrl-C → Exit 130, keine
   Persistenz.
+- Type-to-Filter aktiv (`use_search_filter=True`): Tippen filtert die
+  Provider-Liste live. Verhalten identisch zum Modell-Dialog (siehe Abschnitt
+  "Type-to-Filter" unter Modell-Auswahl).
 - Nach Bestätigung wird `state.last_provider` sofort persistiert (siehe PRD 01).
 
 ## Modell-Discovery
@@ -142,14 +145,39 @@ Jede Slot-Zeile öffnet beim Aktivieren ein Sub-`select` mit:
 Bestätigung mit Enter schließt die Maske komplett. Cancel (Esc/Ctrl-C):
 Exit 130.
 
+### Type-to-Filter
+
+Jedes Slot-`select` (und der Provider-Dialog oben) läuft mit
+`use_search_filter=True` und `show_selected=True`. Damit kann der User lange
+Modell-Listen (z.B. API-Discovery bei Requesty mit Dutzenden Einträgen) durch
+Tippen eingrenzen.
+
+- **Filter**: Tippen filtert die Choices live auf Einträge, deren angezeigter
+  Titel den Suchstring enthält — case-insensitiver Substring-Match
+  (`search_filter.lower() in title.lower()`).
+- **Bearbeiten**: Backspace verkürzt den Suchstring; ein leerer Filter stellt
+  die vollständige Liste wieder her.
+- **Navigation/Auswahl**: Pfeiltasten navigieren die gefilterte Liste, Enter
+  wählt den Eintrag unter dem Cursor. Die Vorbelegung/Cursor-Position bleibt
+  initial erhalten; erst beim Tippen ändert sich die Ansicht.
+- **`(do not set)` / `(use Claude default)`**: Diese Sondereinträge unterliegen
+  demselben Filter und verschwinden, wenn sie nicht matchen. Filter leeren
+  (Backspace) macht sie wieder sichtbar.
+- **Trade-off**: `use_search_filter=True` deaktiviert die vi-artige `j`/`k`-
+  Navigation, weil diese Zeichen Teil des Suchstrings werden. Pfeiltasten
+  bleiben voll funktionsfähig. Dies ist genau der Kompromiss, für den unten
+  `Ctrl-R` als Refresh-Keybinding reserviert wurde (ein einfaches `r` würde als
+  Filtereingabe interpretiert) — es gibt keinen Konflikt.
+
 ### Refresh aus dem Dialog heraus
 
 Innerhalb der Modell-Maske kann der User die Modell-Liste neu vom Provider
 holen, ohne den Dialog verlassen zu müssen.
 
 - **Keybinding**: `Ctrl-R` (primär). `Ctrl-R` wurde gewählt, weil es nicht
-  mit dem späteren Type-to-Search-Filter von `questionary` kollidiert (ein
-  einfaches `r` würde dort als Eingabe interpretiert).
+  mit dem Type-to-Filter von `questionary` kollidiert (siehe Abschnitt
+  "Type-to-Filter"): ein einfaches `r` würde dort als Filtereingabe
+  interpretiert.
 - **Wirkung**: dieselbe Logik wie `-r`/`--refresh` (siehe oben), aber zur
   Laufzeit. Die Liste wird neu aufgebaut, der Dialog re-rendert mit der
   frischen Auswahl, bereits in den Slots stehende Werte werden beibehalten,
