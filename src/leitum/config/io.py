@@ -14,23 +14,71 @@ if TYPE_CHECKING:
 
 
 def load_dotenv_file(path: Path, *, verbose: bool = False) -> dict[str, str]:
-    """Parse a .leitumenv file and return its key/value pairs.
+    """Source a .leitumenv file in a bash subshell and return vars it declares.
 
-    Returns an empty dict if the file does not exist. In verbose mode, logs
-    which file was loaded and which keys were set (values are never logged).
+    Shell expansions including command substitutions (e.g. ``$(op read ...)``)
+    are evaluated by bash before the values are captured.  Returns an empty
+    dict when the file does not exist or is not a regular file.  Values are
+    never logged even in verbose mode.
     """
+    import json
+    import shlex
+    import subprocess
+
     from leitum.config.env import parse_dotenv
 
-    if not path.exists():
+    if not path.is_file():
         return {}
+
     text = path.read_text(encoding="utf-8")
-    result = parse_dotenv(text)
+
     if verbose:
         print(f"Loaded dotenv file: {path}", file=sys.stderr)
-        if result:
-            keys = ", ".join(sorted(result))
-            print(f"  Keys found: {keys}", file=sys.stderr)
-    return result
+        for lineno, raw in enumerate(text.splitlines(), 1):
+            stripped = raw.strip()
+            if stripped and not stripped.startswith("#"):
+                if "=" not in stripped.removeprefix("export "):
+                    print(
+                        f"  Warning: {path}:{lineno}: skipping malformed line",
+                        file=sys.stderr,
+                    )
+
+    declared_keys = set(parse_dotenv(text).keys())
+    if not declared_keys:
+        return {}
+
+    # Source the file in a bash subshell that inherits the current env, then
+    # dump the resulting environment as JSON so values survive newlines/quotes.
+    # set -a exports every assignment automatically (handles lines without "export").
+    # source errors (e.g. malformed lines) are suppressed via 2>/dev/null because
+    # we already warned about them above; the shell always continues to the JSON dump.
+    _dump = "import json,os,sys; json.dump(dict(os.environ), sys.stdout)"
+    _script = f'set -a; source "$1" 2>/dev/null; set +a; {sys.executable} -c {shlex.quote(_dump)}'
+    try:
+        proc = subprocess.run(
+            ["bash", "--noprofile", "--norc", "-c", _script, "--", str(path.resolve())],
+            capture_output=True,
+            text=True,
+            env=os.environ,
+        )
+    except FileNotFoundError:
+        if verbose:
+            print("  Warning: bash not found; falling back to static parse", file=sys.stderr)
+        return parse_dotenv(text)
+
+    if proc.returncode != 0:
+        if verbose:
+            print("  Warning: could not capture subshell environment", file=sys.stderr)
+        return {}
+
+    try:
+        subshell_env: dict[str, str] = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        if verbose:
+            print("  Warning: could not parse subshell environment", file=sys.stderr)
+        return {}
+
+    return {k: subshell_env[k] for k in declared_keys if k in subshell_env}
 
 
 def _yaml() -> YAML:
