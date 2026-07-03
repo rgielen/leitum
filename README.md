@@ -108,6 +108,10 @@ See [docs/commands.md](docs/commands.md) for details.
 ## Providers
 
 - [Requesty](docs/providers/requesty.md)
+- Local Providers (fully supported):
+  - [Ollama](docs/providers/ollama.md)
+  - [LM Studio](docs/providers/lm-studio.md)
+  - [llama.cpp, vLLM, and other local models](docs/providers/local.md)
 
 ## Troubleshooting
 
@@ -115,7 +119,7 @@ Run `leitum doctor` for a full sanity check. See [docs/troubleshooting.md](docs/
 
 ## Contributing
 
-See [CLAUDE.md](CLAUDE.md) and the PRDs in [prd/](prd/) for the authoritative specification.
+See [CLAUDE.md](CLAUDE.md) and the PRDs in [prd/](prd/) for the authoritative specification. Also see the [Roadmap](docs/roadmap.md) for planned and shipped features.
 
 ## License
 
