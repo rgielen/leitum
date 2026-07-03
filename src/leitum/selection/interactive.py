@@ -37,6 +37,7 @@ def select_provider(providers: list[Provider], last_provider: str | None) -> Pro
         choices=choices,
         default=default,  # type: ignore[arg-type]
         use_search_filter=True,
+        use_jk_keys=False,
         show_selected=True,
     ).ask()
     return result  # type: ignore[no-any-return]
@@ -91,6 +92,7 @@ def select_models(
             choices=choices,
             default=default,  # type: ignore[arg-type]
             use_search_filter=True,
+            use_jk_keys=False,
             show_selected=True,
         ).ask()
 
