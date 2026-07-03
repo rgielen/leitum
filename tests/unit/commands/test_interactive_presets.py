@@ -5,6 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+import respx
+from httpx import Response
 from ruamel.yaml import YAML
 
 
@@ -62,6 +65,68 @@ def test_provider_add_interactive_preset_flow(tmp_config_dir: Path) -> None:
     assert prov["base_url"] == "http://localhost:11434"
     assert prov["auth"]["token"] == "my-ollama-token"
     assert prov["extra_env"]["OLLAMA_CONTEXT_LENGTH"] == "32768"
+
+
+def test_provider_add_interactive_detect_flow(tmp_config_dir: Path) -> None:
+    path = tmp_config_dir / "api-providers.yaml"
+    y = YAML()
+    y.dump(
+        {
+            "schema_version": 1,
+            "providers": [
+                {
+                    "name": "existing",
+                    "base_url": "https://existing.example",
+                    "auth": {"token": "dummy"},
+                }
+            ],
+        },
+        path,
+    )
+
+    from leitum.commands.provider import run_provider_add
+
+    # We mock selecting "detect" in provider type which triggers run_provider_detect
+    with respx.mock:
+        # Mock Ollama returning 200
+        respx.get("http://localhost:11434/v1/models").mock(
+            return_value=Response(
+                200,
+                json={
+                    "data": [
+                        {"id": "llama3:latest"},
+                    ]
+                },
+            )
+        )
+        respx.get(url__regex=r"http://localhost:(?!11434).*").mock(side_effect=Exception("Refused"))
+
+        with (
+            patch("questionary.select") as mock_select,
+            patch("questionary.checkbox") as mock_checkbox,
+            patch("questionary.confirm") as mock_confirm,
+        ):
+            mock_select.return_value.ask.side_effect = ["detect"]
+
+            # checkbox returns first detected choice (Ollama)
+            def side_effect():
+                choices = mock_checkbox.call_args[1].get("choices") or mock_checkbox.call_args[0][1]
+                return [choices[0].value]
+
+            mock_checkbox.return_value.ask.side_effect = side_effect
+            mock_confirm.return_value.ask.return_value = True
+
+            with pytest.raises(SystemExit) as exc:
+                run_provider_add()
+            assert exc.value.code == 0
+
+    with path.open("r", encoding="utf-8") as f:
+        doc = y.load(f)
+
+    assert len(doc["providers"]) == 2
+    prov = doc["providers"][1]
+    assert prov["name"] == "ollama"
+    assert prov["base_url"] == "http://localhost:11434"
 
 
 def test_provider_add_interactive_custom_flow(tmp_config_dir: Path) -> None:
