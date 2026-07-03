@@ -1,8 +1,9 @@
 name: Homebrew Bump
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       tag:
@@ -15,6 +16,7 @@ permissions:
 jobs:
   bump:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       # Put brew on PATH for the trust step below. GitHub's runners ship
       # Homebrew but only load its shellenv in login shells, so a bare `run`
@@ -38,5 +40,5 @@ jobs:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           tap: rgielen/homebrew-taps
           formula: leitum
-          tag: ${{ github.event.release.tag_name || inputs.tag }}
+          tag: ${{ github.event.workflow_run.head_branch || inputs.tag }}
           force: false
