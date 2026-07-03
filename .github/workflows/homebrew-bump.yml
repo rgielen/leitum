@@ -53,25 +53,37 @@ jobs:
             echo "::error::PyPI never served leitum ${VERSION}"; exit 1
           fi
 
-          URL=$(printf '%s' "${JSON}" | jq -r '.urls[] | select(.packagetype=="sdist") | .url')
-          SHA=$(printf '%s' "${JSON}" | jq -r '.urls[] | select(.packagetype=="sdist") | .digests.sha256')
-          if [ -z "${URL}" ] || [ "${URL}" = "null" ] || [ -z "${SHA}" ] || [ "${SHA}" = "null" ]; then
+          # `first(...)` keeps these scalar even if PyPI ever lists more than one
+          # sdist; `// ""` yields empty (not "null") when there is none.
+          URL=$(printf '%s' "${JSON}" | jq -r 'first(.urls[] | select(.packagetype=="sdist") | .url) // ""')
+          SHA=$(printf '%s' "${JSON}" | jq -r 'first(.urls[] | select(.packagetype=="sdist") | .digests.sha256) // ""')
+          if [ -z "${URL}" ] || [ -z "${SHA}" ]; then
             echo "::error::Could not resolve an sdist url/sha256 for leitum ${VERSION}"; exit 1
           fi
           echo "url    = ${URL}"
           echo "sha256 = ${SHA}"
 
-          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/rgielen/homebrew-taps.git" tap
+          # Authenticate git via gh's credential helper (uses GH_TOKEN) so no
+          # token is embedded in a remote URL or left in .git/config.
+          gh auth setup-git
+          git clone --depth 1 https://github.com/rgielen/homebrew-taps.git tap
           cd tap
           FORMULA="Formula/leitum.rb"
 
-          # Replace only the first (top-level, 2-space indented) `url` and `sha256`
-          # lines. Resource blocks are 4-space indented, so they never match.
-          awk -v url="${URL}" -v sha="${SHA}" '
-            !u && /^  url /    { sub(/url .*/,    "url \""    url "\""); u=1 }
-            !s && /^  sha256 / { sub(/sha256 .*/, "sha256 \"" sha "\""); s=1 }
+          # Rewrite only the top-level (2-space indented) url + sha256 lines by
+          # replacing the whole line — this avoids awk sub()'s `&` semantics on the
+          # interpolated URL. Fail loudly if either line is not found, so a formula
+          # format change cannot silently produce a no-op "already at" success.
+          if ! awk -v url="${URL}" -v sha="${SHA}" '
+            !u && /^  url /    { $0 = "  url \""    url "\""; u = 1 }
+            !s && /^  sha256 / { $0 = "  sha256 \"" sha "\""; s = 1 }
             { print }
-          ' "${FORMULA}" > "${FORMULA}.tmp" && mv "${FORMULA}.tmp" "${FORMULA}"
+            END { exit (u && s) ? 0 : 3 }
+          ' "${FORMULA}" > "${FORMULA}.tmp"; then
+            echo "::error::Could not locate the top-level url/sha256 lines in ${FORMULA}"
+            rm -f "${FORMULA}.tmp"; exit 1
+          fi
+          mv "${FORMULA}.tmp" "${FORMULA}"
 
           if git diff --quiet -- "${FORMULA}"; then
             echo "Formula is already at ${VERSION}; nothing to do."
