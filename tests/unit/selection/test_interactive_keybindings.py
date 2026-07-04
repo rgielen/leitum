@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import sys
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import questionary
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.keys import Keys
 
 from leitum.config.models import ModelSlot, Provider, ProviderAuth
 from leitum.providers.discovery import ModelInfo
@@ -14,6 +16,7 @@ from leitum.selection.interactive import (
     _REFRESH,
     _SAVE_TOGGLE,
     ModelSelectionResult,
+    _inject_key_bindings,
     select_models,
 )
 
@@ -359,3 +362,59 @@ class TestModelSelectionResult:
 
         _, kwargs = q_mock.select.call_args
         assert "save→project ON" in kwargs.get("instruction", "")
+
+
+class _DummyApp:
+    def __init__(self, key_bindings: object) -> None:
+        self.key_bindings = key_bindings
+
+
+class _DummyQuestion:
+    """Minimal stand-in exposing the `.application.key_bindings` chain used by injection."""
+
+    def __init__(self, key_bindings: object) -> None:
+        self.application = _DummyApp(key_bindings)
+
+
+def _ctrl_count(kb: KeyBindings, key: Keys) -> int:
+    return len(kb.get_bindings_for_keys((key,)))
+
+
+class TestInjectKeyBindings:
+    """Exercise _inject_key_bindings against a real prompt_toolkit KeyBindings.
+
+    The other tests mock questionary away, so the actual key registration is never
+    executed there; a regression in binding injection would ship unnoticed.
+    """
+
+    def test_registers_ctrl_r_and_ctrl_s_when_allowed(self) -> None:
+        kb = KeyBindings()
+        question = cast(questionary.Question, _DummyQuestion(kb))
+
+        _inject_key_bindings(question, save_local_allowed=True)
+
+        assert _ctrl_count(kb, Keys.ControlR) == 1
+        assert _ctrl_count(kb, Keys.ControlS) == 1
+
+    def test_omits_ctrl_s_when_not_allowed(self) -> None:
+        kb = KeyBindings()
+        question = cast(questionary.Question, _DummyQuestion(kb))
+
+        _inject_key_bindings(question, save_local_allowed=False)
+
+        assert _ctrl_count(kb, Keys.ControlR) == 1
+        assert _ctrl_count(kb, Keys.ControlS) == 0
+
+    def test_missing_application_is_a_no_op(self) -> None:
+        """A question without an `.application` attribute must not raise."""
+
+        class _NoApp:
+            pass
+
+        _inject_key_bindings(cast(questionary.Question, _NoApp()), save_local_allowed=True)
+
+    def test_non_keybindings_object_is_a_no_op(self) -> None:
+        """When key_bindings is not a real KeyBindings, injection bails out safely."""
+        question = cast(questionary.Question, _DummyQuestion(object()))
+
+        _inject_key_bindings(question, save_local_allowed=True)
