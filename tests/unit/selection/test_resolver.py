@@ -213,3 +213,65 @@ class TestRoleBasedPreselection:
         )
         # In non-interactive mode with two models, preselect picks first role-matching model
         assert result.sonnet == "sonnet-model"
+
+
+class TestResolvedModelsNewFields:
+    def test_save_local_default_false(self):
+        """ResolvedModels.save_local defaults to False."""
+        from leitum.selection.resolver import ResolvedModels
+
+        r = ResolvedModels()
+        assert r.save_local is False
+
+    def test_dialog_shown_default_false(self):
+        """ResolvedModels.dialog_shown defaults to False."""
+        from leitum.selection.resolver import ResolvedModels
+
+        r = ResolvedModels()
+        assert r.dialog_shown is False
+
+    def test_non_interactive_dialog_shown_stays_false(self):
+        """In non-interactive (no_tty_ok) mode, dialog_shown remains False."""
+        result = _resolve(model_infos=_models("m1", "m2"))
+        assert result.dialog_shown is False
+
+    def test_resolve_models_forwards_keybinding_params(self):
+        """resolve_models forwards new keyword params to select_models."""
+        from unittest.mock import MagicMock, patch
+
+        from leitum.selection.interactive import ModelSelectionResult
+
+        mock_result = ModelSelectionResult(
+            models={"start": "m1", "opus": None, "sonnet": None, "haiku": None}, save_local=True
+        )
+
+        with patch(
+            "leitum.selection.interactive.select_models", return_value=mock_result
+        ) as mock_select:
+            with patch("sys.stdin") as mock_stdin, patch("sys.stdout") as mock_stdout:
+                mock_stdin.isatty.return_value = True
+                mock_stdout.isatty.return_value = True
+
+                refresh_fn = MagicMock(return_value=[])
+                result = resolve_models(
+                    flags={"start": None, "opus": None, "sonnet": None, "haiku": None},
+                    use_last={"start": False, "opus": False, "sonnet": False, "haiku": False},
+                    project_models=None,
+                    state=State(),
+                    provider=_provider(),
+                    model_infos=_models("m1", "m2"),
+                    refresh_models=refresh_fn,
+                    refresh_applicable=False,
+                    refresh_enabled=False,
+                    save_local_allowed=False,
+                    save_local_initial=True,
+                )
+
+        _, kwargs = mock_select.call_args
+        assert kwargs.get("refresh_models") is refresh_fn
+        assert kwargs.get("refresh_applicable") is False
+        assert kwargs.get("refresh_enabled") is False
+        assert kwargs.get("save_local_allowed") is False
+        assert kwargs.get("save_local_initial") is True
+        assert result.dialog_shown is True
+        assert result.save_local is True

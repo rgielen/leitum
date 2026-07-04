@@ -49,6 +49,22 @@ comments and `extra_env` are preserved; only `provider` and `models` are
 rewritten. It cannot be combined with `--no-project-config` (mutually
 exclusive), and `--dry-run` writes nothing.
 
+### Model selection keybindings
+
+During the interactive model selection dialog, two keyboard shortcuts are
+available on every slot:
+
+| Key | Effect |
+|-----|--------|
+| **Ctrl-R** | Re-fetch the provider's model list from the API and rebuild the choices. No-op for YAML-pinned providers or under `--dry-run`. |
+| **Ctrl-S** | Toggle saving the completed selection to `leitum.yaml` (equivalent to `-l`). The instruction footer shows `[save→project ON]` when armed. Unavailable under `--no-project-config`. |
+
+The instruction footer on each slot lists the active shortcuts:
+
+```
+(↑↓ move · type to filter · Ctrl-R refresh · Ctrl-S save→project · Enter select)
+```
+
 ## leitum init
 
 Initialize config directory and example `api-providers.yaml`.

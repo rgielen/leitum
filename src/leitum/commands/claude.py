@@ -16,7 +16,7 @@ from leitum.config.models import ModelSlot
 from leitum.config.paths import providers_config_path
 from leitum.launch import exec_claude
 from leitum.providers.cache import clear_cache
-from leitum.providers.discovery import discover_models
+from leitum.providers.discovery import ModelInfo, discover_models
 from leitum.selection.resolver import resolve_models, resolve_provider
 from leitum.state import load_state, save_state
 
@@ -167,6 +167,10 @@ def run_claude(
                     file=sys.stderr,
                 )
 
+    def _refresh_callback() -> list[ModelInfo]:
+        clear_cache(provider.name)
+        return discover_models(provider, force=True)
+
     resolved = resolve_models(
         flags=flags,
         use_last=use_last,
@@ -175,7 +179,16 @@ def run_claude(
         provider=provider,
         model_infos=model_infos,
         verbose=verbose,
+        refresh_models=_refresh_callback,
+        refresh_applicable=not bool(provider.models),
+        refresh_enabled=not dry_run,
+        save_local_allowed=not no_project_config,
+        save_local_initial=save_local,
     )
+
+    # effective_save_local: when the dialog ran, its armed state governs;
+    # when no dialog ran, the CLI --save-local flag governs unchanged.
+    effective_save_local = resolved.save_local if resolved.dialog_shown else save_local
 
     # Persist the selection — skipped in dry-run to remain side-effect-free.
     # With --save-local the selection goes to leitum.yaml and the global state is
@@ -183,9 +196,9 @@ def run_claude(
     from leitum.selection.resolver import _SLOTS
 
     if dry_run:
-        if save_local and verbose:
+        if effective_save_local and verbose:
             print(f"Dry-run: would write selection to {pc_path}", file=sys.stderr)
-    elif save_local:
+    elif effective_save_local:
         selected: dict[str, str] = {slot: val for slot in _SLOTS if (val := resolved.get(slot))}
         try:
             save_project_config(pc_path, provider=provider.name, models=selected)
