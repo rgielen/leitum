@@ -58,7 +58,7 @@ gewählten Providers nach folgendem Algorithmus auf:
 ### Erzwungener Refresh
 
 `-r`/`--refresh` (siehe PRD 02) und die Refresh-Tastenkombination im
-Modell-Dialog (siehe unten) lassen Schritt 2 aus und gehen direkt zu
+Modell-Dialog (Ctrl-R, siehe unten) lassen Schritt 2 aus und gehen direkt zu
 Schritt 3. Schritt 3 bekommt zusätzlich einen `no_cache=True`-Hinweis, damit
 auch ETag-/Conditional-Mechanismen umgangen werden. Cache wird auf Erfolg
 wie üblich neu geschrieben.
@@ -113,37 +113,31 @@ Hat die Liste nur einen Eintrag, wird der für alle noch offenen Slots
 übernommen (kein Dialog), aber **nur** wenn der Provider keinen abweichenden
 Default vorgegeben hat.
 
-### Dialog-Design: Single-Maske mit vier Slots
+### Dialog-Design: Sequenzielle Slot-Dialoge
 
-Eine zusammenhängende Maske statt vier sequenzieller Dialoge. Konkret: ein
-`questionary.form` (oder eine kleine Eigenimplementierung darauf) zeigt für
-jeden Slot eine Select-Zeile.
+Der Dialog besteht aus einer Folge von `questionary.select`-Aufrufen, einem
+pro Slot. Jeder Slot-Dialog enthält:
 
-Layout (Beispiel):
+- Titel: `"Select models for <provider> — <Slot-Bezeichnung>"`.
+- Choices: "(use Claude default)" resp. "(do not set)" als erster Eintrag,
+  dann alle Modelle aus der Discovery/YAML-Liste. Sortierung: zuerst die
+  `roles`-passenden Modelle, dann der Rest.
+- Cursor auf der Vorbelegung (vorheriger Wert, falls vorhanden, sonst
+  `preselected[slot]`).
+- **Instruction-Footer** auf jedem Slot-Dialog:
+  ```
+  (↑↓ move · type to filter · Ctrl-R refresh · Ctrl-S save→project · Enter select)
+  ```
+  Wird `save_local_allowed=False` (d.h. `--no-project-config` aktiv), entfällt
+  der `Ctrl-S save→project`-Hinweis. Ist der Save-Modus aktiv (armed), wird
+  ` [save→project ON]` an den Footer angehängt.
 
-```
-Select models for Requesty:
+Abbruch (Ctrl-C / `None` von `ask()`): Exit 130.
 
-  Start  (--model)                  ▸ anthropic/claude-sonnet-4
-  Opus   (ANTHROPIC_DEFAULT_OPUS_MODEL)   ▸ anthropic/claude-opus-4
-  Sonnet (ANTHROPIC_DEFAULT_SONNET_MODEL) ▸ anthropic/claude-sonnet-4
-  Haiku  (ANTHROPIC_DEFAULT_HAIKU_MODEL)  ▸ (do not set)
-
-  [Enter] Confirm   [Esc] Cancel   [Ctrl-R] Refresh models
-```
-
-Jede Slot-Zeile öffnet beim Aktivieren ein Sub-`select` mit:
-
-- "(do not set)" als erster Eintrag (bei OPUS/SONNET/HAIKU) bzw. "(use Claude
-  default)" beim START-Slot.
-- Allen Modellen aus der Discovery/YAML-Liste.
-- Sortierung: zuerst die `roles`-passenden Modelle, dann der Rest. Innerhalb
-  einer Gruppe in Definitionsreihenfolge (YAML) bzw. lexikografisch
-  (API-Discovery).
-- Cursor auf der Vorbelegung.
-
-Bestätigung mit Enter schließt die Maske komplett. Cancel (Esc/Ctrl-C):
-Exit 130.
+*Verworfene Alternative:* Eine zusammenhängende Maske mit `questionary.form`
+(oder Eigenimplementierung) wurde im ursprünglichen Entwurf dieses PRD
+beschrieben. Diese wurde als nicht realisierbar mit der aktuellen
+questionary-Version eingestuft und ist kein geplantes Ziel.
 
 ### Type-to-Filter
 
@@ -169,27 +163,62 @@ Tippen eingrenzen.
   `Ctrl-R` als Refresh-Keybinding reserviert wurde (ein einfaches `r` würde als
   Filtereingabe interpretiert) — es gibt keinen Konflikt.
 
-### Refresh aus dem Dialog heraus
+### Refresh aus dem Dialog heraus (Ctrl-R)
 
-Innerhalb der Modell-Maske kann der User die Modell-Liste neu vom Provider
-holen, ohne den Dialog verlassen zu müssen.
+Innerhalb des Slot-Dialogs kann der User die Modell-Liste neu vom Provider
+holen, ohne den Dialog zu verlassen.
 
-- **Keybinding**: `Ctrl-R` (primär). `Ctrl-R` wurde gewählt, weil es nicht
-  mit dem Type-to-Filter von `questionary` kollidiert (siehe Abschnitt
-  "Type-to-Filter"): ein einfaches `r` würde dort als Filtereingabe
-  interpretiert.
-- **Wirkung**: dieselbe Logik wie `-r`/`--refresh` (siehe oben), aber zur
-  Laufzeit. Die Liste wird neu aufgebaut, der Dialog re-rendert mit der
-  frischen Auswahl, bereits in den Slots stehende Werte werden beibehalten,
-  falls sie in der neuen Liste noch vorkommen — andernfalls fallen sie auf
-  "(do not set)" zurück und es erscheint eine Hinweiszeile darunter:
-  `"slot 'opus' reset: previous model not in refreshed list"`.
-- **Statusanzeige während des Refreshs**: einzeilige Meldung am unteren
-  Rand der Maske: `"Refreshing models from <provider>..."`. Bei Fehlern:
-  `"Refresh failed: <reason> — kept current list"` (drei Sekunden sichtbar).
-- **YAML-Modelle**: ist die Liste in YAML gepinnt, wird die Tastenkombination
-  ignoriert und eine Statuszeile zeigt
-  `"(refresh not applicable — provider models are pinned in YAML)"`.
+- **Keybinding**: `Ctrl-R` (über `prompt_toolkit` `KeyBindings.add` mit
+  `eager=True`). `Ctrl-R` wurde gewählt, weil es nicht mit dem Type-to-Filter
+  von `questionary` kollidiert.
+- **Wirkung**: dieselbe Logik wie `-r`/`--refresh`, aber zur Laufzeit. Der
+  aktuelle Slot wird neu gerendert mit der frischen Modell-Liste. Bereits in
+  vorherigen Slots gewählte Werte, die in der neuen Liste nicht mehr vorkommen,
+  werden auf `None` (d.h. "(do not set)") zurückgesetzt. Eine Hinweiszeile auf
+  stderr erscheint:
+  `"slot '<slot>' reset: previous model not in refreshed list"`.
+- **Hinweismeldungen auf stderr** (zwischen den Slot-Dialogen ausgegeben, da
+  der `prompt_toolkit`-App-Kontext zu diesem Zeitpunkt verlassen wurde):
+  - Normaler Refresh: `"Refreshing models from <provider>..."`.
+  - Fehler: `"Refresh failed: <reason> — kept current list"`.
+  - YAML-gepinnte Modelle: `"(refresh not applicable — provider models are pinned in YAML)"`.
+  - Unter `--dry-run`: `"(refresh skipped in --dry-run)"` (kein Netzwerkzugriff,
+    kein Cache-Schreibvorgang).
+- **YAML-Modelle**: Ist die Liste in YAML gepinnt, wird kein Refresh
+  durchgeführt; der Callback ist `None`.
+
+### Speichern aus dem Dialog heraus (Ctrl-S)
+
+- **Keybinding**: `Ctrl-S` (über `prompt_toolkit` `KeyBindings.add` mit
+  `eager=True`). `prompt_toolkit` deaktiviert IXON im Raw-Mode, sodass
+  Ctrl-S als Tastendruck ankommt und nicht als XON/XOFF-Flusssteuerung.
+- **Wirkung**: Additiver Toggle. Schaltet einen "armed"-Zustand um. Ist der
+  Zustand am Ende der Auswahl aktiv, wird die abgeschlossene Auswahl in
+  `leitum.yaml` (oder den `--project-config <path>`) geschrieben — exakt wie
+  `--save-local` (siehe Abschnitt "Persistenz nach Auswahl"). Der globale
+  `state.yaml` wird für diesen Launch nicht angefasst.
+- **Startzustand**: Wenn `--save-local` auf der CLI übergeben wurde, startet
+  der Dialog bereits im armed-Zustand.
+- **Disabled**: Wenn `--no-project-config` aktiv ist (was sich gegenseitig mit
+  `--save-local` ausschließt, erzwungen in `run_claude`), wird Ctrl-S nicht
+  gebunden und der Hinweis im Footer entfällt.
+- **`--dry-run`**: Es wird nichts geschrieben. Falls armed, gilt die bestehende
+  Dry-Run-Meldung "would write selection to <path>".
+
+### Persistenz-Auflösung
+
+In `run_claude` gilt:
+
+```
+effective_save_local = resolved.save_local if resolved.dialog_shown else save_local_cli_flag
+```
+
+Wurde der Modell-Dialog angezeigt, übernimmt sein abschließender
+Armed-Zustand die Entscheidung vollständig (der User kann gegenüber dem
+CLI-Flag arm oder entwaffnen). Wurde kein Dialog angezeigt, gilt das
+CLI-Flag `--save-local` unverändert. Da Ctrl-S unter `--no-project-config`
+nicht verfügbar ist, kann `effective_save_local` nie mit diesem Flag
+kollidieren.
 
 ### Fallback ohne TTY
 
@@ -202,7 +231,7 @@ Wenn `stdin`/`stdout` kein TTY ist (z.B. CI):
 ## Persistenz nach Auswahl
 
 Nach erfolgreicher Auflösung (vor dem Exec) persistiert `leitum` die Auswahl.
-Wohin, hängt von `-l`/`--save-local` ab:
+Wohin, hängt von `effective_save_local` ab (siehe "Persistenz-Auflösung"):
 
 ### Standard: globaler State
 
@@ -214,7 +243,7 @@ Wohin, hängt von `-l`/`--save-local` ab:
     bestehen, damit `--use-last-*` weiter funktioniert).
   - `providers.<name>.last_used` → aktueller Timestamp.
 
-### Mit `-l`/`--save-local`: lokale Project-Config
+### Mit `-l`/`--save-local` oder Ctrl-S: lokale Project-Config
 
 - Die Auswahl wird in `leitum.yaml` geschrieben (Merge, Details in PRD 01,
   Abschnitt "Schreiben per `--save-local`"), und `state.yaml` wird für diesen

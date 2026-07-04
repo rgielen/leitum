@@ -1,5 +1,6 @@
 """Pure resolution logic — no I/O, no dialogs."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from leitum.config.models import ModelDefaults, ModelSlot, Provider, ProvidersConfig
@@ -13,6 +14,8 @@ class ResolvedModels:
     opus: str | None = None
     sonnet: str | None = None
     haiku: str | None = None
+    save_local: bool = False
+    dialog_shown: bool = False
 
     def get(self, slot: ModelSlot) -> str | None:
         if slot == "start":
@@ -164,6 +167,11 @@ def resolve_models(
     model_infos: list[ModelInfo],
     verbose: bool = False,
     no_tty_ok: bool = False,
+    refresh_models: Callable[[], list[ModelInfo]] | None = None,
+    refresh_applicable: bool = True,
+    refresh_enabled: bool = True,
+    save_local_allowed: bool = True,
+    save_local_initial: bool = False,
 ) -> ResolvedModels:
     """
     Resolve all four model slots. May trigger interactive dialog.
@@ -223,12 +231,19 @@ def resolve_models(
                 slots=need_dialog,
                 preselected=preselected,
                 provider=provider,
+                refresh_models=refresh_models,
+                refresh_applicable=refresh_applicable,
+                refresh_enabled=refresh_enabled,
+                save_local_allowed=save_local_allowed,
+                save_local_initial=save_local_initial,
             )
             if chosen is None:
                 raise SystemExit(130)
+            result.dialog_shown = True
+            result.save_local = chosen.save_local
             for slot in need_dialog:
-                result.set(slot, chosen.get(slot))
+                result.set(slot, chosen.models.get(slot))
                 if verbose:
-                    print(f"  {slot}: {chosen.get(slot) or '(not set)'}", file=sys.stderr)
+                    print(f"  {slot}: {chosen.models.get(slot) or '(not set)'}", file=sys.stderr)
 
     return result

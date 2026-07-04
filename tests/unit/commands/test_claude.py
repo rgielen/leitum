@@ -158,3 +158,127 @@ class TestDotenvInRunClaude:
         with patch("leitum.commands.claude.exec_claude"):
             # Should not raise
             run_claude(**_make_run_claude_kwargs())
+
+
+class TestEffectiveSaveLocal:
+    """Tests for effective_save_local logic in run_claude."""
+
+    def test_dialog_armed_saves_to_project_not_state(
+        self,
+        tmp_path: Path,
+        minimal_providers_yaml: Path,
+        tmp_state_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When dialog arms save_local, leitum.yaml is written and state is not."""
+        from unittest.mock import patch
+
+        from leitum.selection.resolver import ResolvedModels
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
+
+        resolved = ResolvedModels(
+            start="anthropic/claude-sonnet-4-5",
+            save_local=True,
+            dialog_shown=True,
+        )
+
+        saved_project_paths: list[Path] = []
+
+        def _fake_save_project(path: Path, *, provider: str, models: dict) -> None:
+            saved_project_paths.append(path)
+
+        with (
+            patch("leitum.commands.claude.resolve_models", return_value=resolved),
+            patch("leitum.commands.claude.exec_claude"),
+            patch("leitum.commands.claude.save_project_config", side_effect=_fake_save_project),
+            patch("leitum.commands.claude.save_state") as mock_save_state,
+        ):
+            run_claude(
+                **_make_run_claude_kwargs(
+                    no_project_config=False,
+                    save_local=False,  # CLI flag NOT set, but dialog arms it
+                )
+            )
+
+        assert len(saved_project_paths) == 1  # project was written
+        mock_save_state.assert_not_called()  # global state was NOT written
+
+    def test_no_dialog_uses_cli_flag_for_save(
+        self,
+        tmp_path: Path,
+        minimal_providers_yaml: Path,
+        tmp_state_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When no dialog ran, the CLI --save-local flag governs."""
+        from unittest.mock import patch
+
+        from leitum.selection.resolver import ResolvedModels
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
+
+        resolved = ResolvedModels(
+            start="anthropic/claude-sonnet-4-5",
+            save_local=False,  # dialog was not shown, so this field is irrelevant
+            dialog_shown=False,
+        )
+
+        saved_project_paths: list[Path] = []
+
+        def _fake_save_project(path: Path, *, provider: str, models: dict) -> None:
+            saved_project_paths.append(path)
+
+        with (
+            patch("leitum.commands.claude.resolve_models", return_value=resolved),
+            patch("leitum.commands.claude.exec_claude"),
+            patch("leitum.commands.claude.save_project_config", side_effect=_fake_save_project),
+        ):
+            run_claude(
+                **_make_run_claude_kwargs(
+                    no_project_config=False,
+                    save_local=True,  # CLI flag IS set
+                )
+            )
+
+        assert len(saved_project_paths) == 1  # project was written per CLI flag
+
+    def test_dry_run_writes_nothing_even_when_armed(
+        self,
+        tmp_path: Path,
+        minimal_providers_yaml: Path,
+        tmp_state_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Under --dry-run, nothing is written regardless of save_local state."""
+        from unittest.mock import patch
+
+        from leitum.selection.resolver import ResolvedModels
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("REQUESTY_API_KEY", "test-key")
+
+        resolved = ResolvedModels(
+            start="anthropic/claude-sonnet-4-5",
+            save_local=True,
+            dialog_shown=True,
+        )
+
+        with (
+            patch("leitum.commands.claude.resolve_models", return_value=resolved),
+            patch("leitum.commands.claude.exec_claude"),
+            patch("leitum.commands.claude.save_project_config") as mock_save_project,
+            patch("leitum.commands.claude.save_state") as mock_save_state,
+        ):
+            run_claude(
+                **_make_run_claude_kwargs(
+                    no_project_config=False,
+                    save_local=False,
+                    dry_run=True,
+                )
+            )
+
+        mock_save_project.assert_not_called()
+        mock_save_state.assert_not_called()

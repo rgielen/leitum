@@ -153,6 +153,11 @@ Global options (before the subcommand):
 | `--dry-run` | | Print env + exec line, do not launch |
 | `--verbose` | `-v` | Verbose logging on stderr |
 
+During model selection, two keyboard shortcuts are available on every slot:
+
+- **Ctrl-R** — re-fetch the provider's model list from the API and rebuild the choices.
+- **Ctrl-S** — toggle saving the selection to `leitum.yaml` (equivalent to `-l`); the footer shows `[save→project ON]` when armed. Unavailable under `--no-project-config`.
+
 Subcommands: `claude`, `provider list/show/add/remove`, `refresh`, `doctor`, `init`, `completions`.
 
 See [docs/commands.md](docs/commands.md) for details.
