@@ -186,7 +186,7 @@ class TestEffectiveSaveLocal:
 
         saved_project_paths: list[Path] = []
 
-        def _fake_save_project(path: Path, *, provider: str, models: dict) -> None:
+        def _fake_save_project(path: Path, *, provider: str, models: dict[str, str]) -> None:
             saved_project_paths.append(path)
 
         with (
@@ -228,7 +228,7 @@ class TestEffectiveSaveLocal:
 
         saved_project_paths: list[Path] = []
 
-        def _fake_save_project(path: Path, *, provider: str, models: dict) -> None:
+        def _fake_save_project(path: Path, *, provider: str, models: dict[str, str]) -> None:
             saved_project_paths.append(path)
 
         with (

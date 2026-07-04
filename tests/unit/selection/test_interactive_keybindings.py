@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import sys
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import questionary
 
-from leitum.config.models import Provider, ProviderAuth
+from leitum.config.models import ModelSlot, Provider, ProviderAuth
 from leitum.providers.discovery import ModelInfo
 from leitum.selection.interactive import (
     _REFRESH,
@@ -18,7 +19,7 @@ from leitum.selection.interactive import (
 
 
 def _provider(**kwargs: object) -> Provider:
-    defaults: dict = {
+    defaults: dict[str, Any] = {
         "name": "requesty",
         "base_url": "https://router.requesty.ai",
         "auth": ProviderAuth(token="tok"),
@@ -43,7 +44,7 @@ def _run_select_models(
     ask_side_effect: list[object],
     refresh_return: list[ModelInfo] | None = None,
     **kwargs: object,
-) -> ModelSelectionResult | None:
+) -> tuple[ModelSelectionResult | None, MagicMock]:
     """Helper: run select_models with a mocked questionary.select."""
     provider = _provider()
     refresh_spy = MagicMock(return_value=refresh_return or [])
@@ -62,7 +63,7 @@ def _run_select_models(
             **kwargs,  # type: ignore[arg-type]
         )
 
-    return result, refresh_spy  # type: ignore[return-value]
+    return result, refresh_spy
 
 
 class TestCtrlRRefresh:
@@ -108,7 +109,7 @@ class TestCtrlRRefresh:
             # We test _do_refresh directly since two-slot testing is complex here.
             from leitum.selection.interactive import _do_refresh
 
-            chosen_so_far: dict = {"start": "stale-model"}
+            chosen_so_far: dict[ModelSlot, str | None] = {"start": "stale-model"}
             new_infos = _do_refresh(
                 provider_name="requesty",
                 refresh_models=lambda: _model_infos("model-b"),
