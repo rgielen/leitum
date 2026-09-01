@@ -168,6 +168,12 @@ Releases are automated — **never bump the version or push a tag by hand.**
   changelog — they are.
 - `.github/workflows/release.yml` must keep its filename: the PyPI
   trusted-publisher configuration is bound to it.
+- The Homebrew tap (`rgielen/homebrew-taps`) has its own CI: every PR builds
+  the formula from source on macOS and Linux, audits and tests it, and merges
+  `leitum-*` bump branches automatically once both pass. Releases therefore
+  reach Homebrew without a manual step; a red tap PR usually means a release
+  changed the transitive dependency set and the `resource` blocks need
+  regenerating.
 
 See `prd/09-dependency-and-release-automation.md` for the full specification.
 

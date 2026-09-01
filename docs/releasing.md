@@ -18,10 +18,15 @@ main ──→ CI ──→ green ──→ Release workflow
                           │    → commit, tag, GitHub release
                           │    → PyPI (trusted publishing) → Homebrew tap PR
                           └─ nothing releasable → green, no release
+
+tap PR ──→ tap CI: audit + build from source + test, on macOS and Linux
+                          └─ green → merges itself
 ```
 
 Everything runs in one workflow. A release that stops halfway is a failed
-workflow run, not a silent partial publish.
+workflow run, not a silent partial publish. The tap pull request is the one
+piece that lives in another repository; it merges itself once its own CI has
+built the formula from source on both platforms.
 
 ## What triggers a release
 
@@ -82,18 +87,17 @@ Two things are exempt from automatic merging:
 - **The Release workflow failed.** Nothing was published. Read the run, fix the
   cause, and push again — the next green CI run on `main` retries the whole
   decision from scratch.
-- **A release happened but the Homebrew pull request looks wrong.** The tap has
-  no CI. Verify locally before merging:
+- **The Homebrew tap pull request is red.** Only the formula's `url` and
+  `sha256` are bumped automatically, so the usual cause is a changed transitive
+  dependency set that the `resource` blocks no longer cover — the from-source
+  build in the tap's CI is what catches it. Regenerate the resources on that
+  branch; see the `homebrew-tap-bump` skill. Reproduce locally with:
 
   ```bash
   brew install --build-from-source rgielen/taps/leitum
   brew audit --strict rgielen/taps/leitum
   brew test rgielen/taps/leitum
   ```
-
-  Only the formula's `url` and `sha256` are bumped automatically. If a release
-  changed the transitive dependency set, the `resource` blocks need regenerating
-  first.
 
 - **A release is needed right now and no releasable commit exists.** Land the
   actual fix as `fix:`. Do not push a tag by hand; a hand-made tag is not what

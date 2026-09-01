@@ -29,9 +29,12 @@ permissions:
 #
 # Instead this job only bumps the formula `url` + `sha256` from PyPI and opens a
 # PR. The resource blocks are left untouched: they only need regenerating when a
-# transitive dependency drifts, which is a human/skill responsibility (see the
-# `homebrew-tap-bump` project skill). Verify with `brew install --build-from-source`
-# before merging — the tap has no CI.
+# transitive dependency drifts (see the `homebrew-tap-bump` project skill).
+#
+# The tap now has CI: every PR builds the formula from source on macOS and
+# Linux, audits and tests it, and merges `leitum-*` branches automatically when
+# both pass. A drifted resource set fails that build, so it is caught there
+# rather than on a user's machine.
 jobs:
   bump:
     runs-on: ubuntu-latest
@@ -114,11 +117,7 @@ jobs:
               --title "leitum ${VERSION}" \
               --body "Bumps the \`leitum\` formula \`url\` + \`sha256\` to ${VERSION} (from PyPI).
 
-          The transitive Python resource blocks were **not** regenerated. If this release changed the dependency set, regenerate them before merging (see the \`homebrew-tap-bump\` skill). The tap has no CI, so verify locally first:
+          The transitive Python resource blocks were **not** regenerated. The tap's CI builds this formula from source on macOS and Linux, so a drifted dependency set fails there; if it does, regenerate the resources on this branch (see the \`homebrew-tap-bump\` skill).
 
-          \`\`\`
-          brew install --build-from-source rgielen/taps/leitum
-          brew audit --strict rgielen/taps/leitum
-          brew test rgielen/taps/leitum
-          \`\`\`"
+          This PR merges itself once both platforms are green."
           fi
