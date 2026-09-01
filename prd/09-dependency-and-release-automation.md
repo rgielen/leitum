@@ -1,6 +1,7 @@
 # PRD 09 — Dependency- und Release-Automatisierung
 
-Implementation status: planned
+Implementation status: implemented — pending the manual installation of the
+Renovate app and a first end-to-end release through the chain.
 
 Dieses PRD beschreibt, wie Abhängigkeiten von `leitum` selbsttätig aktuell
 gehalten werden und wie daraus ohne Handgriff eine Veröffentlichung entsteht.

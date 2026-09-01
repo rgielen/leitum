@@ -4,6 +4,10 @@ This document outlines the planned and completed features for `leitum`.
 
 ## Shipped Features (v1)
 
+### Release Automation
+- **Automated releases**: a green CI run on `main` bumps the version, writes the changelog, tags, and publishes to PyPI and the Homebrew tap, driven by the commit types. See [Releasing](releasing.md).
+- **Automated dependency updates** via Renovate, merged on green CI. Security advisories raise the lower bound in `pyproject.toml` and ship as a patch release.
+
 ### Local Providers & Presets
 - **Interactive presets** for popular local, Anthropic-compatible servers: Ollama, LM Studio, llama.cpp, and vLLM. See [Ollama](providers/ollama.md), [LM Studio](providers/lm-studio.md), and [Local Providers](providers/local.md) documentation.
 - **Automatic detection** (`leitum provider detect`): Scan local ports to discover running instances of Ollama, LM Studio, llama.cpp, and vLLM, and easily configure them with one click.
@@ -27,3 +31,4 @@ This document outlines the planned and completed features for `leitum`.
 
 ### Distribution
 - **Homebrew Core**: Submit the `leitum` recipe directly to Homebrew Core.
+- **CI coverage for `video/`**: the Remotion demo project is not built by CI, so its dependency updates cannot be merged automatically.
