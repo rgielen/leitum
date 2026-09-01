@@ -147,6 +147,30 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS_PASSED_THROUGH]
   After a merge, no branch other than `main` should remain locally or on the
   remote unless it has unmerged work.
 
+## Releases
+
+Releases are automated — **never bump the version or push a tag by hand.**
+
+- The commit type decides whether a release happens. `feat:` cuts a minor,
+  `fix:` a patch; everything else (`chore:`, `docs:`, `test:`, `refactor:`,
+  `ci:`, `build:`) ships with the next release but does not trigger one. While
+  the version is pre-1.0, a breaking change bumps the minor, not the major.
+- Renovate keeps dependencies current and merges its PRs on green CI. Those
+  commits are `chore(deps):` and deliberately do not release: they only touch
+  `uv.lock`, which reaches neither the PyPI artifact nor the Homebrew formula.
+  The exception is a security advisory — Renovate then raises the lower bound in
+  `pyproject.toml` and commits as `fix(deps):`, which does release.
+- After a green CI run on `main`, `.github/workflows/release.yml` runs
+  `python-semantic-release`, which writes the version into `pyproject.toml`,
+  generates the `CHANGELOG.md` section, syncs `uv.lock`, commits, tags, and
+  publishes to PyPI plus the Homebrew tap.
+- Because the version is generated, write commit messages as if they were the
+  changelog — they are.
+- `.github/workflows/release.yml` must keep its filename: the PyPI
+  trusted-publisher configuration is bound to it.
+
+See `prd/09-dependency-and-release-automation.md` for the full specification.
+
 ## When you make changes
 
 1. If you change observable CLI behavior, update `README.md` and any affected
@@ -174,3 +198,4 @@ product behavior changes.
 - Documentation: yes — format Markdown, language English, in `docs/`, audience
   end users and contributors.
 - Work tracking: GitHub issues (see the `process-issues` skill).
+- Dependency and release automation: `prd/09-dependency-and-release-automation.md`.
