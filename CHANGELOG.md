@@ -11,6 +11,43 @@ Conventional Commit messages, which uses a slightly different layout.
 
 <!-- version list -->
 
+## v0.2.0 (2026-09-01)
+
+### Build System
+
+- Configure python-semantic-release for version, changelog and lockfile
+  ([`4c2885f`](https://github.com/rgielen/leitum/commit/4c2885f237bd2ab5b9bc7de80c50469e77fd3dca))
+
+### Chores
+
+- Backfill 0.1.5/0.1.6 changelog and add the semantic-release marker
+  ([`7b766ec`](https://github.com/rgielen/leitum/commit/7b766ecee8ed4b7a4848999e6bc9596ee0c636a3))
+
+- Sync the leitum version in uv.lock with pyproject.toml
+  ([`5d554e7`](https://github.com/rgielen/leitum/commit/5d554e7a1661948aeb22a37c47848713bec13b29))
+
+### Continuous Integration
+
+- Drive releases from python-semantic-release after a green CI on main
+  ([`d865286`](https://github.com/rgielen/leitum/commit/d86528624ac108bcf90489257fcdc50fe57f2827))
+
+- Enforce Conventional Commits on pull requests
+  ([`dcf0824`](https://github.com/rgielen/leitum/commit/dcf0824cfa04e0805219e757b238554b824f324e))
+
+### Documentation
+
+- Plan dependency and release automation with Renovate
+  ([`7e14e65`](https://github.com/rgielen/leitum/commit/7e14e65c0b276c7a03d0742064272a48d5cced36))
+
+- Require feature branches to be worked in their own worktree
+  ([`e19d15f`](https://github.com/rgielen/leitum/commit/e19d15fb36daa79562d71747cb82e90bb1a553c3))
+
+### Features
+
+- Add Renovate configuration for automated dependency updates
+  ([`07eb6c0`](https://github.com/rgielen/leitum/commit/07eb6c0a672e20782312c964a0b9199b02500a39))
+
+
 ## [0.1.6] - 2026-07-04
 
 ### Added
