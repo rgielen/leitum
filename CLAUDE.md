@@ -108,6 +108,23 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS_PASSED_THROUGH]
 
 - `main` is the default branch and always green.
 - Feature branches: `feat/<topic>`, `fix/<topic>`, `docs/<topic>`.
+- **Always work feature branches in their own git worktree**, never by switching
+  branches in the primary checkout. This keeps several branches in progress at
+  the same time and leaves the primary checkout on `main` and usable. Applies to
+  every branch you create yourself, including single-commit fixes and
+  documentation changes; the only exception is a change the user has explicitly
+  told you to commit directly on `main`.
+
+  Create the worktree through the repository's `WorktreeCreate` hook
+  (`scripts/worktree-create.sh`, registered in `.claude/settings.json`) so it is
+  bootstrapped consistently: worktrees live under `.claude/worktrees/<name>`
+  (gitignored), gitignored local files such as `.env` are copied in, and
+  `uv sync` runs. The hook is used automatically by `claude --worktree` and by
+  subagents launched with `isolation: "worktree"`; to create one by hand:
+
+  ```bash
+  echo '{"name":"<topic>","branch_name":"feat/<topic>"}' | scripts/worktree-create.sh
+  ```
 - Commit messages: imperative, English, Conventional-Commits style
   (`feat: …`, `fix: …`, `docs: …`, `test: …`, `refactor: …`, `chore: …`).
 - One logical change per commit. Squash trivia before opening a PR.
@@ -122,7 +139,7 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS_PASSED_THROUGH]
   within the worktree it is trying to remove):
 
   ```bash
-  git worktree remove <path>     # only if the branch had a worktree
+  git worktree remove <path>     # every feature branch has one
   git branch -d <branch>         # -D only when intentionally discarding work
   git fetch origin --prune       # drop stale remote-tracking refs
   ```
