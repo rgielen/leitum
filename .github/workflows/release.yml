@@ -1,34 +1,111 @@
 name: Release
 
+# The filename and the workflow name are both load-bearing:
+#   - PyPI trusted publishing is bound to the workflow FILENAME (release.yml).
+#     Renaming the file breaks OIDC publishing until the trusted-publisher
+#     configuration on PyPI is updated by hand.
+#   - This workflow calls homebrew-bump.yml, which expects to be handed a tag.
+#
+# See prd/09-dependency-and-release-automation.md.
+
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
 
 permissions:
-  id-token: write
-  contents: write
+  contents: read
+
+# Two pushes in quick succession must not release concurrently.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
+    name: Version and publish
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    outputs:
+      released: ${{ steps.psr.outputs.released }}
+      tag: ${{ steps.psr.outputs.tag }}
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify main still points at the tested commit
+        id: guard
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          head="$(git rev-parse HEAD)"
+          if [ "$head" != "$TESTED_SHA" ]; then
+            # We check out main, not the tested SHA, because semantic-release
+            # has to commit and push onto the branch. If main has moved on, the
+            # tip is untested — skip and let that commit's own CI run release it.
+            echo "main is at ${head}, but CI tested ${TESTED_SHA}."
+            echo "Skipping; the newer commit's own CI run will release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install uv
+        if: steps.guard.outputs.skip == 'false'
         uses: astral-sh/setup-uv@v4
 
-      - name: Build
-        run: uv build
+      - name: Version, changelog, tag and GitHub release
+        id: psr
+        if: steps.guard.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          uv sync --group release
 
+          # semantic-release is a no-op when no feat:/fix:/perf: landed since
+          # the last tag, so a comparison of HEAD tells us whether it released.
+          before="$(git rev-parse HEAD)"
+          uv run semantic-release version
+          after="$(git rev-parse HEAD)"
+
+          if [ "$before" = "$after" ]; then
+            echo "No release was due for ${before}."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          else
+            tag="$(git describe --tags --exact-match HEAD)"
+            echo "Released ${tag}."
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # dist/ is produced by semantic-release's build_command (see pyproject).
       - name: Publish to PyPI
+        if: steps.psr.outputs.released == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
-            dist/*.attestation
+      - name: Attach distribution artifacts to the GitHub release
+        if: steps.psr.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.psr.outputs.tag }}
+        run: gh release upload "$TAG" dist/* --clobber
+
+  homebrew:
+    name: Bump Homebrew formula
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    uses: ./.github/workflows/homebrew-bump.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+    secrets: inherit

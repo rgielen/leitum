@@ -1,18 +1,26 @@
 name: Homebrew Bump
 
 on:
-  workflow_run:
-    workflows: ["Release"]
-    types: [completed]
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag (e.g. v0.1.4) to bump the tap to
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
         description: Release tag (e.g. v0.1.4) to bump the tap to
         required: true
+        type: string
 
 permissions:
   contents: read
 
+# Called by release.yml with the tag semantic-release produced, or dispatched by
+# hand to re-run a bump. It used to hang off `workflow_run: ["Release"]` and read
+# the tag from `head_branch`, which only worked while Release was tag-triggered.
+#
 # We deliberately do NOT use `brew bump-formula-pr` / action-homebrew-bump-formula
 # here. For a Python virtualenv formula, recent Homebrew auto-resolves the
 # transitive resource set via pip with `--uploaded-prior-to = now - 24h`, which
@@ -27,12 +35,11 @@ permissions:
 jobs:
   bump:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Bump leitum formula (url + sha256) and open a tap PR
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          TAG: ${{ github.event.workflow_run.head_branch || inputs.tag }}
+          TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
           VERSION="${TAG#v}"
