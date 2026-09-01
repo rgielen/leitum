@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits"],
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "rebase",
+  "platformAutomerge": false,
+  "minimumReleaseAge": "3 days",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"],
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "description": [
+        "Ordinary updates must not trigger a release. They only rewrite uv.lock,",
+        "which reaches neither the PyPI artifact (whose metadata is the open >=",
+        "ranges) nor the Homebrew formula (whose resource blocks come from the pip",
+        "resolution of the published sdist).",
+        "This overrides :semanticPrefixFixDepsChoreOthers, pulled in by",
+        "config:recommended, which would label pep621 project dependencies as",
+        "fix(deps) and so cut a release for a bit-identical build."
+      ],
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Keep workflow-action churn to a single PR.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "description": [
+        "video/ is the Remotion project behind the README demo. CI does not build",
+        "it, so a green run says nothing about whether these updates work.",
+        "Renovate still opens the PRs, because the security value is real, but a",
+        "human has to look before merging. Revisit if CI ever builds the video."
+      ],
+      "matchManagers": ["npm"],
+      "automerge": false,
+      "groupName": "video (Remotion)",
+      "schedule": ["before 6am on monday"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "description": [
+      "The only path on which a dependency update releases. rangeStrategy 'bump'",
+      "raises the lower bound in pyproject.toml, so the published metadata really",
+      "changes, and the fix type makes python-semantic-release cut a patch.",
+      "Renovate applies this on top of packageRules, so the chore override above",
+      "does not reach it."
+    ],
+    "enabled": true,
+    "rangeStrategy": "bump",
+    "semanticCommitType": "fix"
+  },
+  "osvVulnerabilityAlerts": true
+}
