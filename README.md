@@ -178,6 +178,8 @@ Run `leitum doctor` for a full sanity check. See [docs/troubleshooting.md](docs/
 
 See [CLAUDE.md](CLAUDE.md) and the PRDs in [prd/](prd/) for the authoritative specification. Also see the [Roadmap](docs/roadmap.md) for planned and shipped features.
 
+Releases are automatic — never bump a version or push a tag by hand. Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and are checked in CI, because the commit type decides what ships: `feat:` cuts a minor release, `fix:` a patch, and everything else rides along with the next one. Dependencies are kept current by Renovate, whose pull requests merge themselves once CI is green. See [docs/releasing.md](docs/releasing.md).
+
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE).
