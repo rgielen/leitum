@@ -61,24 +61,33 @@ leitum/
 ### Versionierung
 
 - Semantic Versioning. v1 startet bei `0.1.0` (Pre-1.0, da öffentliche
-  API noch fluide).
-- Tags: `vMAJOR.MINOR.PATCH`. Tag triggert Release-Workflow.
+  API noch fluide). Solange die Version bei `0.x` steht, erzeugt ein Breaking
+  Change einen Minor-Bump, keinen Major-Bump.
+- Tags: `vMAJOR.MINOR.PATCH`. Tags werden **nicht mehr von Hand gesetzt** —
+  Version, Tag und Changelog erzeugt `python-semantic-release` aus den
+  Conventional Commits. Siehe PRD 09.
 
 ### Release-Workflow
 
-`.github/workflows/release.yml`:
+`.github/workflows/release.yml`. Der Dateiname ist festgeschrieben: die
+Trusted-Publisher-Konfiguration auf PyPI ist an ihn gebunden.
 
-1. Auf Tag-Push (`v*`).
-2. `uv build` → `dist/`.
-3. `pypa/gh-action-pypi-publish` mit Trusted Publishing
-   (OIDC, kein Token-Secret).
-4. GitHub-Release mit Changelog-Snippet (siehe unten).
+1. Getriggert über `workflow_run` nach einem erfolgreichen CI-Lauf auf `main`.
+2. `python-semantic-release` bestimmt aus den Commits seit dem letzten Tag, ob
+   ein Release ansteht, und schreibt Version, `CHANGELOG.md`, `uv.lock`, Commit
+   und Tag fort.
+3. Nur bei tatsächlichem Release: `uv build` → `dist/`, dann
+   `pypa/gh-action-pypi-publish` mit Trusted Publishing (OIDC, kein
+   Token-Secret), GitHub-Release aus den generierten Changelog-Notizen und
+   Aufruf des Homebrew-Bumps.
+
+Vollständige Spezifikation inklusive der Release-Policy: PRD 09.
 
 ### Changelog
 
-`CHANGELOG.md`, Keep-a-Changelog-Format. Jede merge-fähige PR fügt einen
-Eintrag unter `## [Unreleased]` ein. Release-Tag bewegt die Einträge in einen
-versionierten Abschnitt.
+`CHANGELOG.md`, Keep-a-Changelog-Format. Der Abschnitt für eine Version wird
+beim Release aus den Conventional Commits generiert; ein manueller Eintrag
+unter `## [Unreleased]` ist nicht mehr nötig.
 
 ## Ausführung via uvx
 
@@ -109,8 +118,9 @@ brew tap <owner>/leitum
 brew install leitum
 ```
 
-Pro Release wird die Formula automatisch gebumpt: ein Workflow im Tap zieht
-die PyPI-Metadaten, ersetzt URL/SHA, eröffnet eine PR.
+Pro Release wird die Formula automatisch gebumpt: `homebrew-bump.yml` wird vom
+Release-Workflow mit dem erzeugten Tag aufgerufen, zieht die PyPI-Metadaten,
+ersetzt URL/SHA und eröffnet eine PR im Tap.
 
 Homebrew-Core-Submission ist für später; v1 bleibt im Tap.
 
@@ -185,7 +195,9 @@ Header in den Quelldateien sind nicht verpflichtend, aber begrüßenswert:
 - README enthält einen Hinweis auf die Token-Handling-Praxis (ENV-Refs
   bevorzugen, niemals Tokens commiten).
 - `SECURITY.md` mit Kontaktadresse für Vulnerability-Reports.
-- Dependabot (GitHub-nativ) für Dependency-Updates.
+- Renovate (gehostete Mend-App) für Dependency-Updates, mit Auto-Merge auf
+  grüner CI. Sicherheitsmeldungen heben die Untergrenze in `pyproject.toml`
+  an und lösen damit ein Release aus. Siehe PRD 09.
 
 ## Roadmap (sichtbarer Backlog)
 
