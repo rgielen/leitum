@@ -37,7 +37,7 @@ jobs:
       tag: ${{ steps.psr.outputs.tag }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
@@ -62,7 +62,7 @@ jobs:
 
       - name: Install uv
         if: steps.guard.outputs.skip == 'false'
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v10.0.1
 
       - name: Version, changelog, tag and GitHub release
         id: psr
