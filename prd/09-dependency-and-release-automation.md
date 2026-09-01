@@ -296,11 +296,31 @@ bleiben (Randbedingung 1).
   PyPI-CDN-Retry.
 - `secrets: inherit` bzw. explizite Weitergabe von `HOMEBREW_TAP_TOKEN`.
 
+### CI im Tap (nachgereicht)
+
+Ursprünglich endete die Automatik hier: die Tap-PR entstand selbsttätig, ihr
+Merge blieb Handarbeit, weil der Tap keine CI hatte und ein fehlerhafter
+Resource-Satz erst beim Endnutzer aufgefallen wäre.
+
+`rgielen/homebrew-taps` hat jetzt eine eigene CI. Sie prüft jede PR auf macOS
+und Linux mit `brew audit --strict`, `brew install --build-from-source`,
+`brew test` und einem Smoke-Check der installierten Binary, und mergt Branches
+nach dem Muster `leitum-*` automatisch, sobald beide Plattformen grün sind.
+
+Der Build aus dem Quellcode ist der Schritt, der sich lohnt: da das
+Bump-Skript bewusst nur `url` und `sha256` ersetzt, schlägt ein veränderter
+transitiver Dependency-Satz dort in der pip-Auflösung fehl statt beim Nutzer.
+
+Damit ist die Kette bis zur Homebrew-Veröffentlichung durchgängig ohne
+manuellen Eingriff.
+
 ### Akzeptanzkriterien
 
 - Nach einem echten Release existiert eine PR `leitum <version>` im Tap mit
   korrekten `url`- und `sha256`-Werten.
 - `workflow_dispatch` mit explizitem Tag funktioniert weiterhin.
+- Die Tap-CI baut die Formel auf macOS und Linux aus dem Quellcode und mergt
+  die Bump-PR selbsttätig bei Grün.
 
 ## Dokumentation
 

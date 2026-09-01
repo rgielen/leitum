@@ -115,7 +115,14 @@ fails on `pydantic-core`:
   pydantic-core install so the metadata-generation subprocess can exec
   `maturin`.
 
-### 5. Verify locally before pushing
+### 5. Verify before pushing
+
+The tap has CI: every pull request runs `brew audit --strict`, builds the
+formula from source and runs `brew test` on macOS and Linux, and merges
+`leitum-*` branches automatically once both pass. Pushing the resource fixes to
+the bump branch is therefore enough to get them verified.
+
+Reproducing locally first is still faster than a 12-minute CI round trip:
 
 ```bash
 cd ~/DevHome/Projects/homebrew-taps
@@ -140,8 +147,8 @@ and merge. If you are bumping by hand, commit on `main` of
 
 Either way, do **not** ship a tap commit that has not been through `brew
 install --build-from-source` plus `brew audit --strict --new` plus `brew
-test` locally — there is no CI on the tap repo and end users will hit
-build failures directly.
+test`. The tap's CI enforces this for pull requests; a direct push to `main`
+bypasses it, so verify locally when you take that route.
 
 ## After landing
 
