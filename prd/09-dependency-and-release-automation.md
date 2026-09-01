@@ -1,7 +1,8 @@
 # PRD 09 — Dependency- und Release-Automatisierung
 
-Implementation status: implemented — pending the manual installation of the
-Renovate app and a first end-to-end release through the chain.
+Implementation status: implemented. Erstmals vollständig durchlaufen mit
+v0.2.0 am 2026-09-01 (Commit, Tag, PyPI, GitHub-Release, Tap-PR). Offen ist
+allein die manuelle Installation der Renovate-App.
 
 Dieses PRD beschreibt, wie Abhängigkeiten von `leitum` selbsttätig aktuell
 gehalten werden und wie daraus ohne Handgriff eine Veröffentlichung entsteht.
