@@ -58,7 +58,7 @@ dev = [
 # workflow pulls it in with `uv sync --group release`. Pinned exactly: the
 # release engine must not change under us on an unrelated run.
 release = [
-    "python-semantic-release==10.6.2",
+    "python-semantic-release==10.7.0",
 ]
 
 [tool.hatch.build.targets.wheel]
