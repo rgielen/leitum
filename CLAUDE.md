@@ -130,6 +130,11 @@ leitum [LEITUM_OPTS] <subcommand> [SUBCOMMAND_ARGS_PASSED_THROUGH]
 - One logical change per commit. Squash trivia before opening a PR.
 - PR titles in the same Conventional-Commits style; PR bodies in English with a
   short summary and a test plan checklist.
+- **Copilot review is requested, not automatic.** Automatic Copilot code review is
+  off in the owner's settings (2026-10-03, budget). Open every pull request you
+  create with `gh pr create ... --reviewer @copilot`, once; never re-request it
+  after a fix push. Renovate's pull requests get no Copilot review.
+  `.github/copilot-instructions.md` tells Copilot what to comment on.
 - **Never squash-merge or standard-merge automatically.** Always merge PRs using a **rebase** strategy (`gh pr merge --rebase`) to keep a flat, linear commit log. Avoid standard merge commits. Only use a squash merge if the user explicitly asks for one in that instance.
 - **Always delete the PR branch after merge.** The repository has
   `delete_branch_on_merge` enabled, so the **remote** head branch is removed
