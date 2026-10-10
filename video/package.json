@@ -6,17 +6,17 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@remotion/cli": "4.0.531",
-    "@remotion/google-fonts": "4.0.531",
+    "@remotion/cli": "4.0.534",
+    "@remotion/google-fonts": "4.0.534",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "remotion": "4.0.531"
+    "remotion": "4.0.534"
   },
   "devDependencies": {
-    "@remotion/eslint-config-flat": "4.0.531",
+    "@remotion/eslint-config-flat": "4.0.534",
     "@types/react": "19.3.0",
-    "@types/web": "0.0.357",
-    "eslint": "10.11.0",
+    "@types/web": "0.0.358",
+    "eslint": "10.12.0",
     "prettier": "3.9.9",
     "typescript": "7.0.2"
   },
