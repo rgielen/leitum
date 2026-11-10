@@ -11,6 +11,14 @@ Conventional Commit messages, which uses a slightly different layout.
 
 <!-- version list -->
 
+## v0.2.2 (2026-11-10)
+
+### Bug Fixes
+
+- **deps**: Update dependency gitpython to v3.2.1 [security]
+  ([`4b3dea6`](https://github.com/rgielen/leitum/commit/4b3dea6101727479a11c6bb454587758e7f0ab72))
+
+
 ## v0.2.1 (2026-11-10)
 
 ### Bug Fixes
