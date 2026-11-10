@@ -11,6 +11,75 @@ Conventional Commit messages, which uses a slightly different layout.
 
 <!-- version list -->
 
+## v0.2.1 (2026-11-10)
+
+### Bug Fixes
+
+- **deps**: Update dependency certifi to v2026.10.18 [security]
+  ([`5214d03`](https://github.com/rgielen/leitum/commit/5214d03fd2d4c944fadebdb2a29410e0bd56ebf1))
+
+### Chores
+
+- Request Copilot review explicitly instead of automatically
+  ([`69dbf5c`](https://github.com/rgielen/leitum/commit/69dbf5c411758392ff999c35cb6d10ac5e7ebd97))
+
+- **deps**: Lock file maintenance
+  ([`102c9f8`](https://github.com/rgielen/leitum/commit/102c9f8f29dbb042fd127ede209f50762a86efe8))
+
+- **deps**: Lock file maintenance
+  ([`6ca835d`](https://github.com/rgielen/leitum/commit/6ca835d372b1cc348df9a56f52b37cbc51c8c623))
+
+- **deps**: Update astral-sh/setup-uv action to v10.1.0
+  ([`d4c1201`](https://github.com/rgielen/leitum/commit/d4c1201068e973216973fa8c0b7668e98535a8b5))
+
+- **deps**: Update astral-sh/setup-uv action to v10.2.0
+  ([`fbbbb77`](https://github.com/rgielen/leitum/commit/fbbbb77d3ee7a0a4cf56eb2522e97434ba80a043))
+
+- **deps**: Update astral-sh/setup-uv action to v10.3.0
+  ([`383f8e4`](https://github.com/rgielen/leitum/commit/383f8e4867a64d277c914070712508ddf95fe194))
+
+- **deps**: Update astral-sh/setup-uv action to v10.3.1
+  ([`7396e5b`](https://github.com/rgielen/leitum/commit/7396e5bdc6653a96a93964c0eee66317db15e6e8))
+
+- **deps**: Update astral-sh/setup-uv action to v10.3.2
+  ([`a9b2478`](https://github.com/rgielen/leitum/commit/a9b2478d7e0f1e6643c12633c8f958a2f9ed4163))
+
+- **deps**: Update astral-sh/setup-uv action to v10.3.3
+  ([`fe7b526`](https://github.com/rgielen/leitum/commit/fe7b5268fe15fca2ce06c0b5d078fbf058f3d1a2))
+
+- **deps**: Update dependency python-semantic-release to v10.7.0
+  ([`a696402`](https://github.com/rgielen/leitum/commit/a6964024ad2f18bc59793b65b229b5e54bd5e644))
+
+- **deps**: Update github actions
+  ([`59689bb`](https://github.com/rgielen/leitum/commit/59689bb52e65df97598840097e56d77e69611bad))
+
+- **deps**: Update video (remotion)
+  ([`49f730e`](https://github.com/rgielen/leitum/commit/49f730ef0c75157904fbe1220a6f850f0b65cef9))
+
+- **deps**: Update video (remotion)
+  ([`3a8fd95`](https://github.com/rgielen/leitum/commit/3a8fd9515243f092956ed1d0474a1fb09edeb9b6))
+
+- **deps**: Update video (remotion)
+  ([`b53315f`](https://github.com/rgielen/leitum/commit/b53315f91f32b76811aac49047bc86d3351b32cd))
+
+- **deps**: Update video (remotion)
+  ([`1a7823c`](https://github.com/rgielen/leitum/commit/1a7823c37625d50636aca9d2ad088bae184e5903))
+
+- **deps**: Update video (remotion)
+  ([`b9829a3`](https://github.com/rgielen/leitum/commit/b9829a380a840a7bddd6e1e2a8a788ecee2429ad))
+
+### Documentation
+
+- Document the automated release chain and Renovate policy
+  ([`632f84b`](https://github.com/rgielen/leitum/commit/632f84b1b6e4d633b0166fd5a53d247de8a3c667))
+
+- Record that the Homebrew tap now verifies and merges itself
+  ([`6c3d1a9`](https://github.com/rgielen/leitum/commit/6c3d1a97d5457b5c55afcaacf6dd7729e8d55e26))
+
+- Record the first end-to-end release in PRD 09
+  ([`69ccbf5`](https://github.com/rgielen/leitum/commit/69ccbf58008190a618270fe5b8da9c6fcde365f8))
+
+
 ## v0.2.0 (2026-09-01)
 
 ### Build System
